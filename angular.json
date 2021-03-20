@@ -120,5 +120,8 @@
       }
     }
   },
-  "defaultProject": "RSA-Client"
+  "defaultProject": "RSA-Client",
+  "cli": {
+    "analytics": false
+  }
 }
