@@ -1,7 +1,13 @@
 <div class="lista">
     <h2>ENVÍA UN MENSAJE</h2>
+    Usuario: <input [(ngModel)]="usuario" type="string" placeholder="Usuario"/>
     Mensaje: <input [(ngModel)]="mensaje" type="string" placeholder="Mensaje"/>
     <p>
         <input type="submit" value="Enviar" (click)="enviar()"/>
     </p>
+    <div *ngIf = "mensajes && mensajes.length > 0">
+        <p *ngFor = "let mensaje of mensajes">
+            {{mensaje.usuario}}: {{mensaje.mensaje}}
+        </p>
+    </div>
 </div>
