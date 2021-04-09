@@ -15,19 +15,27 @@ export class PruebaService {
   keyRSAn: bigint;
   constructor(private http: HttpClient) { }
 
-  getMensaje(mensaje: any){
+  getMensaje(mensaje: any): Promise<ArrayBuffer> {
     mensaje.mensaje = bcu.modPow(mensaje.mensaje, this.keyRSAe, this.keyRSAn)
     mensaje.mensaje = bigintConversion.bigintToHex(mensaje.mensaje)
-    this.http.post<any>(environment.apiURL + "/mensaje", mensaje).subscribe(async data => {
-      /*return */ const mensaje = await crypto.subtle.decrypt(
-        {
-          name: "AES-GCM",
-          iv: new Uint8Array(data.iv)
-        },
-        this.keyAES,
-        bigintConversion.hexToBuf(data.mensaje)
-      )
-    });
+    return new Promise((resolve, reject) => {
+      this.http.post<any>(environment.apiURL + "/mensaje", mensaje).subscribe(async data => {
+        try {
+          const decrypted = await crypto.subtle.decrypt(
+            {
+              name: "AES-GCM",
+              iv: new Uint8Array(bigintConversion.hexToBuf(data.iv))
+            },
+            this.keyAES,
+            new Uint8Array(bigintConversion.hexToBuf(data.mensaje))
+          )
+          console.log(bigintConversion.bufToText(decrypted))
+          resolve(decrypted) 
+        } catch (error) {
+          reject(error)
+        }
+      })
+    })
   }
 
   async getClaves() {

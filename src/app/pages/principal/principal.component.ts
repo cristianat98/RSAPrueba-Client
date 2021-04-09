@@ -19,7 +19,7 @@ export class PrincipalComponent implements OnInit {
     this.pruebaService.getClaves();
   }
 
-  enviar(): void{
+  async enviar(): Promise<void>{
     const mensaje = {
       usuario: this.usuario,
       mensaje: bigintConversion.textToBigint(this.mensaje)
@@ -28,11 +28,8 @@ export class PrincipalComponent implements OnInit {
       "usuario": "Server",
       "mensaje": "Enviando..."
     })
-    this.pruebaService.getMensaje(mensaje);
-    /*this.pruebaService.getMensaje(mensaje).subscribe(data => {
-      this.mensajes[this.mensajes.length - 1] = data;
-    }, () => {
-      this.mensajes[this.mensajes.length - 1].mensaje = "NO SE HA PODIDO ENVIAR";
-    })*/
+    const mensajeAes = await this.pruebaService.getMensaje(mensaje)
+    this.mensajes[this.mensajes.length - 1].mensaje = bigintConversion.bufToText(mensajeAes)
+    this.mensajes[this.mensajes.length - 1].usuario = this.usuario
   }
 }
