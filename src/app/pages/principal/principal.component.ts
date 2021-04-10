@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, NgZone, OnInit } from '@angular/core';
 import { PruebaService } from 'src/app/services/prueba.service';
 import { Mensaje } from '../../modelos/mensaje';
 
@@ -9,12 +9,12 @@ import { Mensaje } from '../../modelos/mensaje';
 })
 export class PrincipalComponent implements OnInit {
 
-  constructor(private pruebaService: PruebaService) { }
+  constructor(private pruebaService: PruebaService, private  ngZone: NgZone, private changeDetectorRef: ChangeDetectorRef) { }
 
   mensaje: string;
   usuario: string;
   mensajes: Mensaje[] = [];
-
+  
   ngOnInit(): void {
     this.pruebaService.getClaves();
   }
@@ -30,5 +30,8 @@ export class PrincipalComponent implements OnInit {
     })
     const mensajeAes: Mensaje = await this.pruebaService.getMensaje(mensaje);
     this.mensajes[this.mensajes.length - 1] = mensajeAes;
+    this.usuario = "";
+    this.mensaje = "";
+    this.changeDetectorRef.detectChanges();
   }
 }
