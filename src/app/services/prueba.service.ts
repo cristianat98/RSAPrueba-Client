@@ -1,27 +1,29 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
-import { Observable } from 'rxjs';
-import * as bigintConversion from 'bigint-conversion'
-import * as bcu from 'bigint-crypto-utils'
+import * as bigintConversion from 'bigint-conversion';
+import * as bcu from 'bigint-crypto-utils';
+import { Mensaje } from '../modelos/mensaje';
+import { MensajeCifrado } from '../modelos/mensaje-cifrado';
 
 @Injectable({
   providedIn: 'root'
 })
 export class PruebaService {
 
-  keyAES;
+  keyAES: CryptoKey;
   keyRSAe: bigint;
   keyRSAn: bigint;
   constructor(private http: HttpClient) { }
 
-  getMensaje(mensaje: any): Promise<ArrayBuffer> {
-    mensaje.mensaje = bcu.modPow(mensaje.mensaje, this.keyRSAe, this.keyRSAn)
-    mensaje.mensaje = bigintConversion.bigintToHex(mensaje.mensaje)
+  getMensaje(mensaje: Mensaje): Promise<Mensaje> {
+    const mensajeBigint: bigint = bigintConversion.textToBigint(mensaje.mensaje);
+    const mensajeCifrado: bigint = bcu.modPow(mensajeBigint, this.keyRSAe, this.keyRSAn)
+    mensaje.mensaje = bigintConversion.bigintToHex(mensajeCifrado)
     return new Promise((resolve, reject) => {
-      this.http.post<any>(environment.apiURL + "/mensaje", mensaje).subscribe(async data => {
+      this.http.post<MensajeCifrado>(environment.apiURL + "/mensaje", mensaje).subscribe(async data => {
         try {
-          const decrypted = await crypto.subtle.decrypt(
+          const decrypted: ArrayBuffer = await crypto.subtle.decrypt(
             {
               name: "AES-GCM",
               iv: new Uint8Array(bigintConversion.hexToBuf(data.iv))
@@ -29,8 +31,11 @@ export class PruebaService {
             this.keyAES,
             new Uint8Array(bigintConversion.hexToBuf(data.mensaje))
           )
-          console.log(bigintConversion.bufToText(decrypted))
-          resolve(decrypted) 
+          const mensajeDescifrado: Mensaje = {
+            usuario: data.usuario,
+            mensaje: bigintConversion.bufToText(decrypted)
+          }
+          resolve(mensajeDescifrado) 
         } catch (error) {
           reject(error)
         }
@@ -40,10 +45,10 @@ export class PruebaService {
 
   async getClaves() {
     const keyAESHex = "95442fa551e13eacedea3e79f0ec1e63513cc14a9dbc4939ad70ceb714b44b8f";
-    this.keyAES = new Uint8Array(bigintConversion.hexToBuf(keyAESHex));
+    const keyAESBuffer: ArrayBuffer = new Uint8Array(bigintConversion.hexToBuf(keyAESHex));
     this.keyAES = await crypto.subtle.importKey(
       "raw",
-      this.keyAES,
+      keyAESBuffer,
       "AES-GCM",
       true,
       ["encrypt", "decrypt"]

@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { PruebaService } from 'src/app/services/prueba.service';
-import * as bigintConversion from 'bigint-conversion';
+import { Mensaje } from '../../modelos/mensaje';
 
 @Component({
   selector: 'app-principal',
@@ -13,23 +13,22 @@ export class PrincipalComponent implements OnInit {
 
   mensaje: string;
   usuario: string;
-  mensajes: any[] = [];
+  mensajes: Mensaje[] = [];
 
   ngOnInit(): void {
     this.pruebaService.getClaves();
   }
 
   async enviar(): Promise<void>{
-    const mensaje = {
+    const mensaje: Mensaje = {
       usuario: this.usuario,
-      mensaje: bigintConversion.textToBigint(this.mensaje)
+      mensaje: this.mensaje
     }
     this.mensajes.push({
-      "usuario": "Server",
-      "mensaje": "Enviando..."
+      usuario: "Server",
+      mensaje: "Enviando..."
     })
-    const mensajeAes = await this.pruebaService.getMensaje(mensaje)
-    this.mensajes[this.mensajes.length - 1].mensaje = bigintConversion.bufToText(mensajeAes)
-    this.mensajes[this.mensajes.length - 1].usuario = this.usuario
+    const mensajeAes: Mensaje = await this.pruebaService.getMensaje(mensaje);
+    this.mensajes[this.mensajes.length - 1] = mensajeAes;
   }
 }
