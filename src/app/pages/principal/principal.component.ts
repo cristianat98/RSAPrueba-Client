@@ -32,21 +32,11 @@ export class PrincipalComponent implements OnInit {
       mensaje: "Enviando..."
     })
 
-    if (this.cifrado === "RSA"){
-      mensaje.mensaje = this.pruebaService.encriptarRSA(mensaje.mensaje); 
-      this.mensajeRecibido = await this.pruebaService.getMensajeRSA(mensaje);
-    }
+    if (this.cifrado === "RSA" || this.cifrado === "AES")
+      this.mensajeRecibido = await this.pruebaService.getMensaje(mensaje, this.cifrado)
 
-    else if (this.cifrado === "AES"){
-      const datosAES: DatoscifradoAES = await this.pruebaService.encriptarAES(mensaje.mensaje);
-      mensaje.mensaje = datosAES.mensaje
-      this.mensajeRecibido = await this.pruebaService.getMensajeAES(mensaje, datosAES.iv, datosAES.tag)
-    }
-
-    else{
-      const datosAES: DatoscifradoAES = await this.pruebaService.encriptarAES(mensaje.mensaje);
-      mensaje.mensaje = datosAES.mensaje + datosAES.tag
-    }
+    else
+      this.mensajeRecibido = await this.pruebaService.getFirma(mensaje)
 
     this.mensajes[this.mensajes.length - 1] = this.mensajeRecibido
     this.usuario = "";

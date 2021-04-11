@@ -1,13 +1,17 @@
 <div class="lista">
     <p>
-        EL SERVIDOR SIEMPRE TE ENVIARÁ EL MENSAJE CON LA CLAVE SIMÉTRICA AES
+        EL SERVIDOR SIEMPRE TE ENVIARÁ EL MENSAJE CON LA CLAVE SIMÉTRICA AES (EXCEPTO FIRMA CIEGA)
     </p>
     <p>
         PUEDES ELEGIR SI TÚ LE QUIERES ENVIAR EL MENSAJE CON LA CLAVE SIMÉTRICA AES O CON LA CLAVE PÚBLICA DEL SERVIDOR
     </p>
+    <p>
+        TAMBIÉN PUEDES ELEGIR SI QUIERES QUE TE FIRME EL MENSAJE SIN SABER LO QUE ESTÁ FIRMANDO (FIRMA CIEGA)
+    </p>
     Tipo de cifrado: <select [(ngModel)]="cifrado">
-        <option value="RSA" >RSA</option>
-        <option value="AES" >AES</option>
+        <option value="RSA">RSA</option>
+        <option value="AES">AES</option>
+        <option value="Firma Ciega">Firma Ciega</option>
       </select>*
     <h2>ENVÍA UN MENSAJE</h2>
     Usuario: <input [(ngModel)]="usuario" type="string" placeholder="Usuario"/>
