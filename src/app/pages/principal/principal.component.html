@@ -1,4 +1,14 @@
 <div class="lista">
+    <p>
+        EL SERVIDOR SIEMPRE TE ENVIARÁ EL MENSAJE CON LA CLAVE SIMÉTRICA AES
+    </p>
+    <p>
+        PUEDES ELEGIR SI TÚ LE QUIERES ENVIAR EL MENSAJE CON LA CLAVE SIMÉTRICA AES O CON LA CLAVE PÚBLICA DEL SERVIDOR
+    </p>
+    Tipo de cifrado: <select [(ngModel)]="cifrado">
+        <option value="RSA" >RSA</option>
+        <option value="AES" >AES</option>
+      </select>*
     <h2>ENVÍA UN MENSAJE</h2>
     Usuario: <input [(ngModel)]="usuario" type="string" placeholder="Usuario"/>
     Mensaje: <input [(ngModel)]="mensaje" type="string" placeholder="Mensaje"/>

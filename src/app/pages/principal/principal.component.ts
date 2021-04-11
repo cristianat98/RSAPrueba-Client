@@ -1,4 +1,5 @@
 import { ChangeDetectorRef, Component, NgZone, OnInit } from '@angular/core';
+import { DatoscifradoAES } from 'src/app/modelos/datoscifrado-aes';
 import { PruebaService } from 'src/app/services/prueba.service';
 import { Mensaje } from '../../modelos/mensaje';
 
@@ -13,6 +14,8 @@ export class PrincipalComponent implements OnInit {
 
   mensaje: string;
   usuario: string;
+  cifrado: string;
+  mensajeRecibido: Mensaje;
   mensajes: Mensaje[] = [];
   
   ngOnInit(): void {
@@ -20,7 +23,7 @@ export class PrincipalComponent implements OnInit {
   }
 
   async enviar(): Promise<void>{
-    const mensaje: Mensaje = {
+    let mensaje: Mensaje = {
       usuario: this.usuario,
       mensaje: this.mensaje
     }
@@ -28,8 +31,24 @@ export class PrincipalComponent implements OnInit {
       usuario: "Server",
       mensaje: "Enviando..."
     })
-    const mensajeAes: Mensaje = await this.pruebaService.getMensaje(mensaje);
-    this.mensajes[this.mensajes.length - 1] = mensajeAes;
+
+    if (this.cifrado === "RSA"){
+      mensaje.mensaje = this.pruebaService.encriptarRSA(mensaje.mensaje); 
+      this.mensajeRecibido = await this.pruebaService.getMensajeRSA(mensaje);
+    }
+
+    else if (this.cifrado === "AES"){
+      const datosAES: DatoscifradoAES = await this.pruebaService.encriptarAES(mensaje.mensaje);
+      mensaje.mensaje = datosAES.mensaje
+      this.mensajeRecibido = await this.pruebaService.getMensajeAES(mensaje, datosAES.iv, datosAES.tag)
+    }
+
+    else{
+      const datosAES: DatoscifradoAES = await this.pruebaService.encriptarAES(mensaje.mensaje);
+      mensaje.mensaje = datosAES.mensaje + datosAES.tag
+    }
+
+    this.mensajes[this.mensajes.length - 1] = this.mensajeRecibido
     this.usuario = "";
     this.mensaje = "";
     this.changeDetectorRef.detectChanges();
