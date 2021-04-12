@@ -1,5 +1,4 @@
-export interface DatoscifradoAES {
+export interface DatosCifradoAES {
     mensaje: string
     iv: string
-    tag: string
 }

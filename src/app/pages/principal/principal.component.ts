@@ -1,5 +1,4 @@
 import { ChangeDetectorRef, Component, NgZone, OnInit } from '@angular/core';
-import { DatoscifradoAES } from 'src/app/modelos/datoscifrado-aes';
 import { PruebaService } from 'src/app/services/prueba.service';
 import { Mensaje } from '../../modelos/mensaje';
 
@@ -29,7 +28,7 @@ export class PrincipalComponent implements OnInit {
       this.error = true;
       return
     }
-    if (this.usuario === undefined || this.mensaje === undefined){
+    if (this.usuario === undefined || this.usuario === "" || this.mensaje === undefined || this.mensaje === ""){
       this.error2 = true;
       if (this.cifrado !== undefined)
         this.error = false;

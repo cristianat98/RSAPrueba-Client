@@ -5,7 +5,8 @@ import * as bigintConversion from 'bigint-conversion';
 import * as bcu from 'bigint-crypto-utils';
 import { Mensaje } from '../modelos/mensaje';
 import { MensajeRecibidoCifrado } from '../modelos/mensaje-cifrado';
-import { DatoscifradoAES } from '../modelos/datoscifrado-aes';
+import { DatosCifradoAES } from '../modelos/datoscifrado-aes';
+import { KeyPublicaRSA } from 'src/app/modelos/key-publica-rsa'
 
 @Injectable({
   providedIn: 'root'
@@ -13,10 +14,8 @@ import { DatoscifradoAES } from '../modelos/datoscifrado-aes';
 export class PruebaService {
 
   keyAES: CryptoKey;
-  keyRSAe: bigint;
-  keyRSAn: bigint;
-  ivFirma: string;
-  rBigint: bigint;
+  keyPublicaRSA: KeyPublicaRSA;
+  rCegar: bigint;
 
   constructor(private http: HttpClient) { }
 
@@ -32,13 +31,12 @@ export class PruebaService {
     }
 
     else{
-      const datosAES: DatoscifradoAES = await this.encriptarAES(new Uint8Array (bigintConversion.textToBuf(mensaje.mensaje)));
+      const datosAES: DatosCifradoAES = await this.encriptarAES(new Uint8Array (bigintConversion.textToBuf(mensaje.mensaje)));
       enviar = {
         cifrado: "AES",
         usuario: mensaje.usuario,
         mensaje: datosAES.mensaje,
-        iv: datosAES.iv,
-        tag: datosAES.tag
+        iv: datosAES.iv
       }
     }
 
@@ -93,45 +91,43 @@ export class PruebaService {
       true,
       ["encrypt", "decrypt"]
     )
-    this.http.get<any>(environment.apiURL + "/rsa").subscribe(data => {
-      this.keyRSAe = bigintConversion.hexToBigint(data.publicKey.e);
-      this.keyRSAn = bigintConversion.hexToBigint(data.publicKey.n);
+    this.http.get<KeyPublicaRSA>(environment.apiURL + "/rsa").subscribe(data => {
+      this.keyPublicaRSA = data;
+      this.keyPublicaRSA.e = bigintConversion.hexToBigint(this.keyPublicaRSA.eHex);
+      this.keyPublicaRSA.n = bigintConversion.hexToBigint(this.keyPublicaRSA.nHex);
     });
   }
 
   encriptarRSA(mensaje: bigint): bigint {
-    const mensajeCifrado: bigint = bcu.modPow(mensaje, this.keyRSAe, this.keyRSAn)
+    const mensajeCifrado: bigint = bcu.modPow(mensaje, this.keyPublicaRSA.e, this.keyPublicaRSA.n)
     return bigintConversion.bigintToHex(mensajeCifrado)
   }
 
+  verificarRSA(cifrado: bigint): bigint {
+    return bcu.modPow(cifrado, this.keyPublicaRSA.e, this.keyPublicaRSA.n)
+  }
+
   cegarRSA(mensaje: bigint): bigint {
-    let r: Uint8Array = window.crypto.getRandomValues(new Uint8Array(16));
-    this.rBigint = bigintConversion.bufToBigint(r);
+    this.rCegar = bigintConversion.bufToBigint(window.crypto.getRandomValues(new Uint8Array(16)));
     let enc: Boolean = false;
     while (!enc){
-      if (this.rBigint % this.keyRSAn !== 0n)
+      if (this.rCegar % this.keyPublicaRSA.n !== 0n)
         enc = true;
 
-      else{
-        r = window.crypto.getRandomValues(new Uint8Array(16));
-        this.rBigint = bigintConversion.bufToBigint(r);
-      }
+      else
+        this.rCegar = bigintConversion.bufToBigint(window.crypto.getRandomValues(new Uint8Array(16)));
     }
 
-    const rCifrado: bigint = bcu.modPow(this.rBigint, this.keyRSAe, this.keyRSAn)
-    return bigintConversion.bigintToHex(bcu.toZn(mensaje*rCifrado, this.keyRSAn))
+    const rCifrado: bigint = bcu.modPow(this.rCegar, this.keyPublicaRSA.e, this.keyPublicaRSA.n)
+    return bigintConversion.bigintToHex(bcu.toZn(mensaje*rCifrado, this.keyPublicaRSA.n))
   }
 
   descegarRSA(cifrado: bigint): bigint {
-    const rinverso: bigint = bcu.modInv(this.rBigint, this.keyRSAn);
-    return bcu.toZn(cifrado*rinverso, this.keyRSAn)
+    const rinverso: bigint = bcu.modInv(this.rCegar, this.keyPublicaRSA.n);
+    return bcu.toZn(cifrado*rinverso, this.keyPublicaRSA.n)
   }
 
-  verificarRSA(cifrado: bigint): bigint {
-    return bcu.modPow(cifrado, this.keyRSAe, this.keyRSAn)
-  }
-
-  async encriptarAES(mensaje: Uint8Array): Promise<DatoscifradoAES> {
+  async encriptarAES(mensaje: Uint8Array): Promise<DatosCifradoAES> {
     const iv: Uint8Array = window.crypto.getRandomValues(new Uint8Array(12))
     const mensajeCifrado: ArrayBuffer = await crypto.subtle.encrypt(
       {
@@ -144,9 +140,8 @@ export class PruebaService {
 
     const mensajeCifradoHex: string = bigintConversion.bufToHex(mensajeCifrado)
     return {
-      mensaje: mensajeCifradoHex.slice(0, mensajeCifradoHex.length - 32),
-      iv: bigintConversion.bufToHex(iv),
-      tag: mensajeCifradoHex.slice(mensajeCifradoHex.length - 32, mensajeCifradoHex.length)
+      mensaje: mensajeCifradoHex,
+      iv: bigintConversion.bufToHex(iv)
     }
   }
 }
