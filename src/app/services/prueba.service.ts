@@ -120,7 +120,7 @@ export class PruebaService {
   }
 
   verificarRSA(cifrado: string): string {
-    const cifradoBigint: bigint = bigintConversion.textToBigint(cifrado);
+    const cifradoBigint: bigint = bigintConversion.hexToBigint(cifrado);
     const mensajeVerificadoBigint: bigint = bcu.modPow(cifradoBigint, this.keyRSAe, this.keyRSAn)
     return bigintConversion.bigintToHex(mensajeVerificadoBigint)
   }
