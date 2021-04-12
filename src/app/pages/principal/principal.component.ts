@@ -15,6 +15,8 @@ export class PrincipalComponent implements OnInit {
   mensaje: string;
   usuario: string;
   cifrado: string;
+  error: Boolean = false;
+  error2: Boolean = false;
   mensajeRecibido: Mensaje;
   mensajes: Mensaje[] = [];
   
@@ -23,6 +25,19 @@ export class PrincipalComponent implements OnInit {
   }
 
   async enviar(): Promise<void>{
+    if (this.cifrado === undefined){
+      this.error = true;
+      return
+    }
+    if (this.usuario === undefined || this.mensaje === undefined){
+      this.error2 = true;
+      if (this.cifrado !== undefined)
+        this.error = false;
+      return
+    }
+
+    this.error = false;
+    this.error2 = false;
     let mensaje: Mensaje = {
       usuario: this.usuario,
       mensaje: this.mensaje

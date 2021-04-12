@@ -13,9 +13,15 @@
         <option value="AES">AES</option>
         <option value="Firma Ciega">Firma Ciega</option>
       </select>*
+      <p *ngIf="error" style="color:#FF0000;">
+          Debes seleccionar un tipo de cifrado
+      </p>
     <h2>ENVÍA UN MENSAJE</h2>
     Usuario: <input [(ngModel)]="usuario" type="string" placeholder="Usuario"/>
     Mensaje: <input [(ngModel)]="mensaje" type="string" placeholder="Mensaje"/>
+    <p *ngIf="error2" style="color:#FF0000;">
+        Debes poner un usuario y un mensaje
+    </p>
     <p>
         <input type="submit" value="Enviar" (click)="enviar()"/>
     </p>
