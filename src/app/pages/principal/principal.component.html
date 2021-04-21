@@ -1,33 +1,53 @@
-<div class="lista">
-    <p>
-        EL SERVIDOR SIEMPRE TE ENVIARÁ EL MENSAJE CON LA CLAVE SIMÉTRICA AES (EXCEPTO FIRMA CIEGA)
-    </p>
-    <p>
-        PUEDES ELEGIR SI TÚ LE QUIERES ENVIAR EL MENSAJE CON LA CLAVE SIMÉTRICA AES O CON LA CLAVE PÚBLICA DEL SERVIDOR
-    </p>
-    <p>
-        TAMBIÉN PUEDES ELEGIR SI QUIERES QUE TE FIRME EL MENSAJE SIN SABER LO QUE ESTÁ FIRMANDO (FIRMA CIEGA)
-    </p>
-    Tipo de cifrado: <select [(ngModel)]="cifrado">
-        <option value="RSA">RSA</option>
-        <option value="AES">AES</option>
-        <option value="Firma Ciega">Firma Ciega</option>
-      </select>*
-      <p *ngIf="error" style="color:#FF0000;">
-          Debes seleccionar un tipo de cifrado
-      </p>
-    <h2>ENVÍA UN MENSAJE</h2>
-    Usuario: <input [(ngModel)]="usuario" type="string" placeholder="Usuario"/>
-    Mensaje: <input [(ngModel)]="mensaje" type="string" placeholder="Mensaje"/>
-    <p *ngIf="error2" style="color:#FF0000;">
-        Debes poner un usuario y un mensaje
-    </p>
-    <p>
-        <input type="submit" value="Enviar" (click)="enviar()"/>
-    </p>
-    <div *ngIf = "mensajes && mensajes.length > 0">
-        <p *ngFor = "let mensaje of mensajes">
-            {{mensaje.usuario}}: {{mensaje.mensaje}}
+<div class="centrar">
+    <div *ngIf="!usuario" #else Usuario>
+        <h2>ESCRIBE EL NOMBRE QUE QUIERAS</h2>
+        Usuario: <input [(ngModel)]="usuarioTextBox" type="string" placeholder="Usuario"/>*
+        <p *ngIf="error3" style="color:#FF0000;">
+            Debes escribir un nombre de usuario
         </p>
+        <p>
+            <input type="submit" value="OK" (click)="setUsuario()"/>
+        </p>
+    </div>
+    <div *ngIf="usuario">
+        <p>
+            EL SERVIDOR SIEMPRE TE ENVIARÁ EL MENSAJE CON LA CLAVE SIMÉTRICA AES (EXCEPTO FIRMA CIEGA)
+        </p>
+        <p>
+            PUEDES ELEGIR SI TÚ LE QUIERES ENVIAR EL MENSAJE CON LA CLAVE SIMÉTRICA AES O CON LA CLAVE PÚBLICA DEL SERVIDOR
+        </p>
+        <p>
+            TAMBIÉN PUEDES ELEGIR SI QUIERES QUE TE FIRME EL MENSAJE SIN SABER LO QUE ESTÁ FIRMANDO (FIRMA CIEGA)
+        </p>
+        Tipo de cifrado: <select [(ngModel)]="cifrado">
+            <option value="RSA">RSA</option>
+            <option value="AES">AES</option>
+            <option value="Firma Ciega">Firma Ciega</option>
+        </select>*
+        <p *ngIf="error" style="color:#FF0000;">
+            Debes seleccionar un tipo de cifrado
+        </p>
+        <h2>QUIERES CAMBIARTE EL NOMBRE ? Ahora eres {{usuario}}</h2>
+        Usuario: <input [(ngModel)]="usuarioTextBox" type="string" placeholder="Usuario"/>*
+        <p *ngIf="error3" style="color:#FF0000;">
+            Debes escribir un nombre de usuario
+        </p>    
+        <p>
+            <input type="submit" value="OK" (click)="setUsuario()"/>
+        </p> 
+        <h2>ENVÍA UN MENSAJE</h2>
+        Mensaje: <input [(ngModel)]="mensaje" type="string" placeholder="Mensaje"/>*
+        <p *ngIf="error2" style="color:#FF0000;">
+            Debes escribir un mensaje
+        </p>
+        <p>
+            <input type="submit" value="Enviar" (click)="enviar()"/>
+        </p>
+        <div *ngIf = "mensajes && mensajes.length > 0">
+            MENSAJES
+            <p *ngFor = "let mensaje of mensajes">
+                {{mensaje.usuario}}: {{mensaje.mensaje}}
+            </p>
+        </div>
     </div>
 </div>

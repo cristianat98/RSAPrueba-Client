@@ -13,16 +13,38 @@ export class PrincipalComponent implements OnInit {
   constructor(private pruebaService: PruebaService, private  ngZone: NgZone, private changeDetectorRef: ChangeDetectorRef, private socket: Socket) { }
 
   mensaje: string;
+  usuarioTextBox: string;
   usuario: string;
   cifrado: string;
   error: Boolean = false;
   error2: Boolean = false;
+  error3: Boolean = false;
   mensajeRecibido: Mensaje;
   mensajes: Mensaje[] = [];
   
   ngOnInit(): void {
     this.pruebaService.getClaves();
-    this.socket.connect();
+  }
+
+  setUsuario(): void {
+    if (this.usuarioTextBox === undefined || this.usuarioTextBox === ""){
+      this.error3 = true;
+      return
+    }
+    
+    else{
+      this.error3 = false;
+      if (this.usuario === undefined){
+        this.socket.connect();
+        this.socket.emit('nuevoConectado', this.usuarioTextBox);
+      }
+  
+      else{
+        this.socket.emit('cambiarNombre', this.usuarioTextBox)
+      }
+  
+      this.usuario = this.usuarioTextBox;
+    }
   }
 
   async enviar(): Promise<void>{
@@ -30,6 +52,7 @@ export class PrincipalComponent implements OnInit {
       this.error = true;
       return
     }
+
     if (this.usuario === undefined || this.usuario === "" || this.mensaje === undefined || this.mensaje === ""){
       this.error2 = true;
       if (this.cifrado !== undefined)
@@ -55,7 +78,6 @@ export class PrincipalComponent implements OnInit {
       this.mensajeRecibido = await this.pruebaService.getFirma(mensaje)
 
     this.mensajes[this.mensajes.length - 1] = this.mensajeRecibido
-    this.usuario = "";
     this.mensaje = "";
     this.changeDetectorRef.detectChanges();
   }
