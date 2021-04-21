@@ -38,9 +38,28 @@
 
         <h2>ALGORITMOS DE NO REPUDIO</h2>
         Usuarios Conectados: <select [(ngModel)]="UsuarioNoRepudio">
-            <option *ngFor="let usuarioNR of usuarios" value="usuarioNR">{{usuarioNR}}</option>
+            <option *ngFor="let usuarioNR of usuarios" value="usuarioNR.nombre">{{usuarioNR.nombre}}</option>
         </select>*
-
+        <p *ngIf="errorUsuario" style="color:#FF0000;">
+            Debes seleccionar un usuario
+        </p>
+        <h2>Envía un mensaje para probar el algoritmo</h2>
+        Mensaje: <input [(ngModel)]="mensajeAlgoritmo" type="string" placeholder="Mensaje"/>*
+        <p *ngIf="errorMensajeAlgoritmo" style="color:#FF0000;">
+            Debes escribir un mensaje
+        </p>
+        <p>
+            <input type="submit" value="Enviar" (click)="enviar2()"/>
+        </p>
+        <p *ngIf="">
+            ALGUIEN TE QUIERE ENVIAR UN MENSAJE
+        </p>
+        <p *ngIf="enviado">
+            ESPERANDO RESPUESTA
+        </p>
+        <p ngIf="recibido">
+            HAN CONTESTADO
+        </p>
         <h2>CIFRADOS</h2>
         Tipo de cifrado: <select [(ngModel)]="cifrado">
             <option value="RSA">RSA</option>
