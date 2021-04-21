@@ -82,7 +82,7 @@ export class PruebaService {
   }
 
   async getClaves(): Promise<void> {
-    const keyAESHex = "95442fa551e13eacedea3e79f0ec1e63513cc14a9dbc4939ad70ceb714b44b8f";
+    const keyAESHex = "95442fa551e13eacedea3e79f0ec1e63513cc14a9dbc4939ad70ceb714b44b8f"
     const keyAESBuffer: ArrayBuffer = new Uint8Array(bigintConversion.hexToBuf(keyAESHex));
     this.keyAES = await crypto.subtle.importKey(
       "raw",

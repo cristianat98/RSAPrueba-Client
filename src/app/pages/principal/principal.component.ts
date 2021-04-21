@@ -1,4 +1,5 @@
 import { ChangeDetectorRef, Component, NgZone, OnInit } from '@angular/core';
+import { Socket } from 'ngx-socket-io';
 import { PruebaService } from 'src/app/services/prueba.service';
 import { Mensaje } from '../../modelos/mensaje';
 
@@ -9,7 +10,7 @@ import { Mensaje } from '../../modelos/mensaje';
 })
 export class PrincipalComponent implements OnInit {
 
-  constructor(private pruebaService: PruebaService, private  ngZone: NgZone, private changeDetectorRef: ChangeDetectorRef) { }
+  constructor(private pruebaService: PruebaService, private  ngZone: NgZone, private changeDetectorRef: ChangeDetectorRef, private socket: Socket) { }
 
   mensaje: string;
   usuario: string;
@@ -21,6 +22,7 @@ export class PrincipalComponent implements OnInit {
   
   ngOnInit(): void {
     this.pruebaService.getClaves();
+    this.socket.connect();
   }
 
   async enviar(): Promise<void>{
