@@ -2,13 +2,17 @@
     <div *ngIf="!usuario" #else Usuario>
         <h2>ESCRIBE EL NOMBRE QUE QUIERAS</h2>
         Usuario: <input [(ngModel)]="usuarioTextBox" type="string" placeholder="Usuario"/>*
-        <p *ngIf="error3" style="color:#FF0000;">
+        <p *ngIf="errorElegido" style="color:#FF0000;">
+            Este nombre ya está elegido. Coge otro
+        </p>
+        <p *ngIf="errorNombre" style="color:#FF0000;">
             Debes escribir un nombre de usuario
         </p>
         <p>
             <input type="submit" value="OK" (click)="setUsuario()"/>
         </p>
     </div>
+    
     <div *ngIf="usuario">
         <p>
             EL SERVIDOR SIEMPRE TE ENVIARÁ EL MENSAJE CON LA CLAVE SIMÉTRICA AES (EXCEPTO FIRMA CIEGA)
@@ -19,25 +23,36 @@
         <p>
             TAMBIÉN PUEDES ELEGIR SI QUIERES QUE TE FIRME EL MENSAJE SIN SABER LO QUE ESTÁ FIRMANDO (FIRMA CIEGA)
         </p>
+
+        <h2>QUIERES CAMBIARTE EL NOMBRE ? Ahora eres {{usuario}}</h2>
+        Usuario: <input [(ngModel)]="usuarioTextBox" type="string" placeholder="Usuario"/>
+        <p *ngIf="errorNombre" style="color:#FF0000;">
+            Debes escribir un nombre de usuario
+        </p> 
+        <p *ngIf="errorElegido" style="color:#FF0000;">
+            Este nombre ya está elegido. Coge otro
+        </p>   
+        <p>
+            <input type="submit" value="OK" (click)="setUsuario()"/>
+        </p> 
+
+        <h2>ALGORITMOS DE NO REPUDIO</h2>
+        Usuarios Conectados: <select [(ngModel)]="UsuarioNoRepudio">
+            <option *ngFor="let usuarioNR of usuarios" value="usuarioNR">{{usuarioNR}}</option>
+        </select>*
+
+        <h2>CIFRADOS</h2>
         Tipo de cifrado: <select [(ngModel)]="cifrado">
             <option value="RSA">RSA</option>
             <option value="AES">AES</option>
             <option value="Firma Ciega">Firma Ciega</option>
         </select>*
-        <p *ngIf="error" style="color:#FF0000;">
+        <p *ngIf="errorCifrado" style="color:#FF0000;">
             Debes seleccionar un tipo de cifrado
         </p>
-        <h2>QUIERES CAMBIARTE EL NOMBRE ? Ahora eres {{usuario}}</h2>
-        Usuario: <input [(ngModel)]="usuarioTextBox" type="string" placeholder="Usuario"/>*
-        <p *ngIf="error3" style="color:#FF0000;">
-            Debes escribir un nombre de usuario
-        </p>    
-        <p>
-            <input type="submit" value="OK" (click)="setUsuario()"/>
-        </p> 
-        <h2>ENVÍA UN MENSAJE</h2>
+        <h2>Envía un mensaje para probar el cifrado</h2>
         Mensaje: <input [(ngModel)]="mensaje" type="string" placeholder="Mensaje"/>*
-        <p *ngIf="error2" style="color:#FF0000;">
+        <p *ngIf="errorMensaje" style="color:#FF0000;">
             Debes escribir un mensaje
         </p>
         <p>

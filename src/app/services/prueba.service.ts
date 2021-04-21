@@ -7,6 +7,7 @@ import { Mensaje } from '../modelos/mensaje';
 import { MensajeRecibidoCifrado } from '../modelos/mensaje-cifrado';
 import { DatosCifradoAES } from '../modelos/datoscifrado-aes';
 import { KeyPublicaRSA } from 'src/app/modelos/key-publica-rsa'
+import { Observable } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
@@ -18,6 +19,23 @@ export class PruebaService {
   rCegar: bigint;
 
   constructor(private http: HttpClient) { }
+
+  conectar(usuario: string): Observable<string[]> {
+    const enviar = {
+      usuario: usuario
+    }
+
+    return this.http.post<string[]>(environment.apiURL + "/conectar", enviar)
+  }
+
+  cambiar(usuarios: string[]): Observable<string> {
+    const enviar = {
+      usuarioAntiguo: usuarios[0],
+      usuarioNuevo: usuarios[1]
+    }
+
+    return this.http.post<string>(environment.apiURL + "/cambiar", enviar)
+  }
 
   async getMensaje(mensaje: Mensaje, cifrado: string): Promise<Mensaje> {
     let enviar;
