@@ -1,3 +1,5 @@
+import { RsaPublicKey } from './clave-rsa'
+
 export interface DatosCifradoAES {
     mensaje: string
     iv: string
@@ -16,6 +18,5 @@ export interface Mensaje {
 
 export interface Usuario {
     nombre: string
-    eHex: string
-    nHex: string
+    publicKey: RsaPublicKey
 }

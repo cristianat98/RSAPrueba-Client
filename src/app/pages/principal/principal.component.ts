@@ -47,8 +47,7 @@ export class PrincipalComponent implements OnInit {
     this.socket.on('mensajeCifrado', recibido => {
       this.usuarios.forEach(usuarioLista => {
         if (usuarioLista.nombre === recibido.usuarioOrigen){
-          const publicKeyUser: RsaPublicKey = new RsaPublicKey(bigintConversion.hexToBigint(this.usuarios[this.usuarios.indexOf(usuarioLista)].eHex), bigintConversion.hexToBigint(this.usuarios[this.usuarios.indexOf(usuarioLista)].nHex))
-          const hashFirma: string = bigintConversion.bigintToText(publicKeyUser.verify(recibido.firma));
+          const hashFirma: string = bigintConversion.bigintToText(usuarioLista.publicKey.verify(recibido.firma));
           console.log(hashFirma);
           const hash: string = cryptojs.SHA256(recibido.mensaje).toString(); 
           console.log(hash);
@@ -85,9 +84,9 @@ export class PrincipalComponent implements OnInit {
           this.socket.connect();
           const usuarioEnviar: Usuario = {
             nombre: this.usuario,
-            eHex: bigintConversion.bigintToHex(this.pruebaService.getPublicKey().e),
-            nHex: bigintConversion.bigintToHex(this.pruebaService.getPublicKey().n)
+            publicKey: this.pruebaService.getPublicKey()
           }
+
           this.socket.emit('nuevoConectado', usuarioEnviar);
         }, () => {
           this.errorElegido = true;
