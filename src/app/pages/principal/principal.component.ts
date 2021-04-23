@@ -1,12 +1,13 @@
 import { ChangeDetectorRef, Component, NgZone, OnInit } from '@angular/core';
 import { Socket } from 'ngx-socket-io';
-import { PruebaService } from 'src/app/services/prueba.service';
-import { Mensaje } from '../../modelos/modelos';
+import { enviarUsuario, Mensaje } from '../../modelos/modelos';
 import { Usuario } from '../../modelos/modelos';
 import * as bigintConversion from 'bigint-conversion';
 import { DatosCifradoAES } from 'src/app/modelos/modelos';
 import * as cryptojs from 'crypto-js';
 import { RsaPublicKey } from '../../modelos/clave-rsa';
+import { ServidorService } from 'src/app/services/servidor.service';
+import { PruebaService } from 'src/app/services/prueba.service';
 
 @Component({
   selector: 'app-principal',
@@ -15,7 +16,8 @@ import { RsaPublicKey } from '../../modelos/clave-rsa';
 })
 export class PrincipalComponent implements OnInit {
 
-  constructor(private pruebaService: PruebaService, private  ngZone: NgZone, private changeDetectorRef: ChangeDetectorRef, private socket: Socket) { }
+  constructor(private servidorService: ServidorService, private  ngZone: NgZone, private changeDetectorRef: ChangeDetectorRef, private socket: Socket,
+    private pruebaService: PruebaService) { }
 
   mensaje: string;
   mensajeAlgoritmo: string;
@@ -37,11 +39,35 @@ export class PrincipalComponent implements OnInit {
   mensajes: Mensaje[] = [];
 
   ngOnInit(): void {
-    this.pruebaService.getClaves();
+    this.servidorService.getClaves();
+  }
 
-    this.socket.on('nuevoConectado', (usuarioSocket: Usuario) => {
-      if (usuarioSocket.nombre !== this.usuario)
-        this.usuarios.push(usuarioSocket)
+  sockets(): void {
+    this.socket.on('nuevoConectado', (usuarioSocket: enviarUsuario) => {
+      if (usuarioSocket.nombre !== this.usuario){
+        const nuevoUsuario: Usuario = {
+          nombre: usuarioSocket.nombre,
+          publicKey: new RsaPublicKey(bigintConversion.hexToBigint(usuarioSocket.eHex), bigintConversion.hexToBigint(usuarioSocket.eHex))
+        }
+        this.usuarios.push(nuevoUsuario)
+      }
+    })
+
+    this.socket.on('cambiarNombre', (usuariosSocket: string[]) => {
+      if (this.usuario !== usuariosSocket[1]){
+        this.usuarios.forEach((usuarioLista: Usuario) => {
+          if (usuarioLista.nombre === usuariosSocket[0]){
+            this.usuarios[this.usuarios.indexOf(usuarioLista)].nombre = usuariosSocket[1];
+          }
+        })
+      }
+    })
+
+    this.socket.on('desconectado', (usuarioSocket: string) => {
+      this.usuarios.forEach((usuarioLista: Usuario) => {
+        if (usuarioLista.nombre === usuarioSocket)
+          this.usuarios.splice(this.usuarios.indexOf(usuarioLista), 1)
+      })
     })
 
     this.socket.on('mensajeCifrado', recibido => {
@@ -57,15 +83,7 @@ export class PrincipalComponent implements OnInit {
       })
     })
 
-    this.socket.on('cambiarNombre', (usuariosSocket: string[]) => {
-      if (this.usuario !== usuariosSocket[1]){
-        this.usuarios.forEach((usuarioLista: Usuario) => {
-          if (usuarioLista.nombre === usuariosSocket[0]){
-            this.usuarios[this.usuarios.indexOf(usuarioLista)].nombre = usuariosSocket[1];
-          }
-        })
-      }
-    })
+    
   }
 
   setUsuario(): void {
@@ -76,15 +94,23 @@ export class PrincipalComponent implements OnInit {
     
     else{
       this.errorNombre = false;
+
       if (this.usuario === undefined){
-        this.pruebaService.conectar(this.usuarioTextBox).subscribe(data => {
+        this.servidorService.conectar(this.usuarioTextBox).subscribe(data => {
           this.errorElegido = false;
-          this.usuarios = data;
+          data.forEach((usuarioLista: enviarUsuario)  => {
+            const nuevoUsuario: Usuario = {
+              nombre: usuarioLista.nombre,
+              publicKey: new RsaPublicKey (bigintConversion.hexToBigint(usuarioLista.eHex), bigintConversion.hexToBigint(usuarioLista.nHex))
+            }
+            this.usuarios.push(nuevoUsuario)
+          })
           this.usuario = this.usuarioTextBox;
-          this.socket.connect();
-          const usuarioEnviar: Usuario = {
+          this.sockets();
+          const usuarioEnviar: enviarUsuario = {
             nombre: this.usuario,
-            publicKey: this.pruebaService.getPublicKey()
+            nHex: bigintConversion.bigintToHex(this.servidorService.getkeyRSAPublica().n),
+            eHex: bigintConversion.bigintToHex(this.servidorService.getkeyRSAPublica().e)
           }
 
           this.socket.emit('nuevoConectado', usuarioEnviar);
@@ -95,10 +121,10 @@ export class PrincipalComponent implements OnInit {
       }
   
       else{
-        const usuarios: string [] = [this.usuario, this.usuarioTextBox];
-        this.pruebaService.cambiar(usuarios).subscribe(() => {
+        const cambioUsuario: string[] = [this.usuario, this.usuarioTextBox];
+        this.servidorService.cambiar(cambioUsuario).subscribe(() => {
           this.usuario = this.usuarioTextBox;
-          this.socket.emit('cambiarNombre', usuarios);
+          this.socket.emit('cambiarNombre', cambioUsuario);
         }, () => {
           this.errorElegido = true;
           this.usuarioTextBox = this.usuario;
@@ -107,7 +133,7 @@ export class PrincipalComponent implements OnInit {
     }
   }
 
-  async enviar(): Promise<void>{
+  /*async enviar(): Promise<void>{
     if (this.cifrado === undefined){
       this.errorCifrado = true;
       return
@@ -185,5 +211,5 @@ export class PrincipalComponent implements OnInit {
 
   rechazar(): void {
     this.recibido = false;
-  }
+  }*/
 }

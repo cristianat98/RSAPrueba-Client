@@ -20,3 +20,9 @@ export interface Usuario {
     nombre: string
     publicKey: RsaPublicKey
 }
+
+export interface enviarUsuario {
+    nombre: string
+    eHex: string
+    nHex: string
+}
