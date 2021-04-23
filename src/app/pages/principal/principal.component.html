@@ -37,8 +37,8 @@
         </p> 
 
         <h2>ALGORITMOS DE NO REPUDIO</h2>
-        Usuarios Conectados: <select [(ngModel)]="UsuarioNoRepudio">
-            <option *ngFor="let usuarioNR of usuarios" value="usuarioNR.nombre">{{usuarioNR.nombre}}</option>
+        Usuarios Conectados: <select [(ngModel)]="usuarioNoRepudio">
+            <option *ngFor="let usuarioNR of usuarios" [value]="usuarioNR.nombre">{{usuarioNR.nombre}}</option>
         </select>*
         <p *ngIf="errorUsuario" style="color:#FF0000;">
             Debes seleccionar un usuario
@@ -49,15 +49,19 @@
             Debes escribir un mensaje
         </p>
         <p>
-            <input type="submit" value="Enviar" (click)="enviar2()"/>
+            <input type="submit" value="Enviar" [disabled]="enviado" (click)="enviar2()"/>
         </p>
-        <p *ngIf="">
-            ALGUIEN TE QUIERE ENVIAR UN MENSAJE
+        <div *ngIf="recibido">
+        <p>
+            ALGUIEN TE QUIERE ENVIARTE UN MENSAJE
         </p>
+        <input type="submit" value="Contestar" (click)="contestar()"/> 
+        <input type="submit" value="Rechazar" (click)="rechazar()"/>
+        </div>
         <p *ngIf="enviado">
             ESPERANDO RESPUESTA
         </p>
-        <p ngIf="recibido">
+        <p *ngIf="contestado">
             HAN CONTESTADO
         </p>
         <h2>CIFRADOS</h2>

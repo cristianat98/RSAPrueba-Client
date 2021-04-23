@@ -3,17 +3,18 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
 import * as bigintConversion from 'bigint-conversion';
 import * as bcu from 'bigint-crypto-utils';
-import { Mensaje } from '../modelos/mensaje';
-import { MensajeRecibidoCifrado } from '../modelos/mensaje-cifrado';
-import { DatosCifradoAES } from '../modelos/datoscifrado-aes';
+import { Mensaje } from '../modelos/modelos';
+import { MensajeRecibidoCifrado } from '../modelos/modelos';
+import { DatosCifradoAES } from '../modelos/modelos';
 import { KeyPublicaRSA } from 'src/app/modelos/key-publica-rsa'
 import { Observable } from 'rxjs';
-import { Usuario } from '../modelos/usuario';
-import { generateKeys, rsaKeyPair, RsaPublicKey } from '../modelos/clave-rsa';
+import { Usuario } from '../modelos/modelos';
+import { generateKeys, rsaKeyPair, RsaPublicKey, RsaPrivateKey } from '../modelos/clave-rsa';
 
 @Injectable({
   providedIn: 'root'
 })
+
 export class PruebaService {
 
   keyAES: CryptoKey;
@@ -43,6 +44,10 @@ export class PruebaService {
 
   getPublicKey(): RsaPublicKey {
     return this.rsaKeyPair.publicKey;
+  }
+
+  getPrivateKey(): RsaPrivateKey {
+    return this.rsaKeyPair.privateKey;
   }
 
   conectar(usuario: string): Observable<Usuario[]> {
