@@ -49,7 +49,7 @@
             Debes escribir un mensaje
         </p>
         <p>
-            <input type="submit" value="Enviar" [disabled]="enviado" (click)="enviar2()"/>
+            <input type="submit" value="Enviar" [disabled]="enviado" (click)="enviarNoRepudio()"/>
         </p>
         <div *ngIf="recibido">
         <p>
@@ -63,6 +63,10 @@
         </p>
         <p *ngIf="contestado">
             HAN CONTESTADO
+        </p>
+        <p *ngIf="noContestado">
+            NO HAN CONTESTADO
+            <input type="submit" value="OK" (click)="aceptar()"/> 
         </p>
         <h2>CIFRADOS</h2>
         Tipo de cifrado: <select [(ngModel)]="cifrado">

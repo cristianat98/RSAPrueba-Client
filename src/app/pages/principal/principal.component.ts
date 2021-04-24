@@ -1,13 +1,11 @@
-import { ChangeDetectorRef, Component, NgZone, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { Socket } from 'ngx-socket-io';
-import { enviarUsuario, Mensaje } from '../../modelos/modelos';
+import { CifradoRSA, UsuarioServidor, Mensaje, MensajeServidor, CifradoAES, NoRepudio } from '../../modelos/modelos';
 import { Usuario } from '../../modelos/modelos';
 import * as bigintConversion from 'bigint-conversion';
-import { DatosCifradoAES } from 'src/app/modelos/modelos';
 import * as cryptojs from 'crypto-js';
 import { RsaPublicKey } from '../../modelos/clave-rsa';
 import { ServidorService } from 'src/app/services/servidor.service';
-import { PruebaService } from 'src/app/services/prueba.service';
 
 @Component({
   selector: 'app-principal',
@@ -16,14 +14,14 @@ import { PruebaService } from 'src/app/services/prueba.service';
 })
 export class PrincipalComponent implements OnInit {
 
-  constructor(private servidorService: ServidorService, private  ngZone: NgZone, private changeDetectorRef: ChangeDetectorRef, private socket: Socket,
-    private pruebaService: PruebaService) { }
+  constructor(private servidorService: ServidorService, private changeDetectorRef: ChangeDetectorRef, private socket: Socket) { }
 
   mensaje: string;
   mensajeAlgoritmo: string;
   usuarioTextBox: string;
   usuario: string;
   usuarioNoRepudio: string;
+  ivNoRepudio: Uint8Array;
   usuarios: Usuario[] = [];
   cifrado: string;
   errorCifrado: Boolean = false;
@@ -35,6 +33,7 @@ export class PrincipalComponent implements OnInit {
   enviado: Boolean = false;
   recibido: Boolean = false;
   contestado: Boolean = false;
+  noContestado: Boolean = false;
   mensajeRecibido: Mensaje;
   mensajes: Mensaje[] = [];
 
@@ -43,11 +42,11 @@ export class PrincipalComponent implements OnInit {
   }
 
   sockets(): void {
-    this.socket.on('nuevoConectado', (usuarioSocket: enviarUsuario) => {
+    this.socket.on('nuevoConectado', (usuarioSocket: UsuarioServidor) => {
       if (usuarioSocket.nombre !== this.usuario){
         const nuevoUsuario: Usuario = {
           nombre: usuarioSocket.nombre,
-          publicKey: new RsaPublicKey(bigintConversion.hexToBigint(usuarioSocket.eHex), bigintConversion.hexToBigint(usuarioSocket.eHex))
+          publicKey: new RsaPublicKey(bigintConversion.hexToBigint(usuarioSocket.eHex), bigintConversion.hexToBigint(usuarioSocket.nHex))
         }
         this.usuarios.push(nuevoUsuario)
       }
@@ -70,20 +69,27 @@ export class PrincipalComponent implements OnInit {
       })
     })
 
-    this.socket.on('mensajeCifrado', recibido => {
+    this.socket.on('nuevoMensaje', (mensajeSocket: Mensaje) => {
+      if (mensajeSocket.usuario !== this.usuario){
+        this.mensajes.push(mensajeSocket)
+      }
+    })
+
+    this.socket.on('mensajeCifrado', (recibido: NoRepudio) => {
       this.usuarios.forEach(usuarioLista => {
         if (usuarioLista.nombre === recibido.usuarioOrigen){
-          const hashFirma: string = bigintConversion.bigintToText(usuarioLista.publicKey.verify(recibido.firma));
-          console.log(hashFirma);
-          const hash: string = cryptojs.SHA256(recibido.mensaje).toString(); 
-          console.log(hash);
+          const hashFirmaBigint: bigint = usuarioLista.publicKey.verify(bigintConversion.hexToBigint(recibido.firma));
+          const hashFirma: string = bigintConversion.bigintToText(hashFirmaBigint);
+          const hash: string = cryptojs.SHA256(bigintConversion.hexToBuf(recibido.cifrado)).toString(); 
           if (hashFirma === hash)
             this.recibido = true;
         }
       })
     })
 
-    
+    this.socket.on('noContestado', () => {
+      this.recibido = false;
+    })
   }
 
   setUsuario(): void {
@@ -98,7 +104,7 @@ export class PrincipalComponent implements OnInit {
       if (this.usuario === undefined){
         this.servidorService.conectar(this.usuarioTextBox).subscribe(data => {
           this.errorElegido = false;
-          data.forEach((usuarioLista: enviarUsuario)  => {
+          data.forEach((usuarioLista: UsuarioServidor)  => {
             const nuevoUsuario: Usuario = {
               nombre: usuarioLista.nombre,
               publicKey: new RsaPublicKey (bigintConversion.hexToBigint(usuarioLista.eHex), bigintConversion.hexToBigint(usuarioLista.nHex))
@@ -107,7 +113,7 @@ export class PrincipalComponent implements OnInit {
           })
           this.usuario = this.usuarioTextBox;
           this.sockets();
-          const usuarioEnviar: enviarUsuario = {
+          const usuarioEnviar: UsuarioServidor = {
             nombre: this.usuario,
             nHex: bigintConversion.bigintToHex(this.servidorService.getkeyRSAPublica().n),
             eHex: bigintConversion.bigintToHex(this.servidorService.getkeyRSAPublica().e)
@@ -133,14 +139,17 @@ export class PrincipalComponent implements OnInit {
     }
   }
 
-  /*async enviar(): Promise<void>{
+  async enviar(): Promise<void>{
     if (this.cifrado === undefined){
       this.errorCifrado = true;
+      this.errorNombre = false;
       return
     }
 
     if (this.mensaje === undefined || this.mensaje === ""){
       this.errorMensaje = true;
+      this.errorNombre = false;
+
       if (this.cifrado !== undefined)
         this.errorCifrado = false;
       return
@@ -149,42 +158,91 @@ export class PrincipalComponent implements OnInit {
     this.errorCifrado = false;
     this.errorMensaje = false;
     this.errorElegido = false;
-    let mensaje: Mensaje = {
-      usuario: this.usuario,
-      mensaje: this.mensaje
-    }
-
+    this.errorNombre = false;
     this.mensajes.push({
       usuario: "Server",
       mensaje: "Enviando..."
     })
 
-    if (this.cifrado === "RSA" || this.cifrado === "AES")
-      this.mensajeRecibido = await this.pruebaService.getMensaje(mensaje, this.cifrado)
-
-    else
-      this.mensajeRecibido = await this.pruebaService.getFirma(mensaje)
-
-    this.mensajes[this.mensajes.length - 1] = this.mensajeRecibido
-    this.mensaje = "";
-    this.changeDetectorRef.detectChanges();
-    //this.socket.emit('nuevoMensaje', this.mensajeRecibido);
-    this.socket.on('nuevoMensaje', (mensajeSocket: Mensaje) => {
-      if (mensajeSocket.usuario !== this.usuario){
-        this.mensajes.push(mensajeSocket)
+    if (this.cifrado === "Firma Ciega"){
+      const hashmensaje: string = cryptojs.SHA256(this.mensaje).toString();
+      const hashCegadoBigint: bigint = await this.servidorService.cegarRSA(bigintConversion.textToBigint(hashmensaje));
+      const hashCegado: string = bigintConversion.bigintToHex(hashCegadoBigint);
+      const enviar: Mensaje = {
+        usuario: this.usuario,
+        mensaje: hashCegado
       }
-    })
+
+      this.servidorService.firmarServidor(enviar).subscribe(data => {
+        const firma: bigint = this.servidorService.descegarRSA(bigintConversion.hexToBigint(data.mensaje));
+        const digestBigint: bigint = this.servidorService.verificarRSA(firma);
+        const digest: string = bigintConversion.bigintToText(digestBigint);
+        if (digest === hashmensaje){
+          const mensaje: Mensaje = {
+            usuario: this.usuario,
+            mensaje: this.mensaje + "(VERIFICADO)"
+          }
+
+          this.mensajes[this.mensajes.length - 1] = mensaje
+          this.mensaje = "";
+          this.changeDetectorRef.detectChanges();
+        }
+      })
+    }
+
+    else{
+      let enviar: MensajeServidor;
+      if (this.cifrado === "RSA"){
+        const cifrado: CifradoRSA = await this.servidorService.cifrarRSA(new Uint8Array(bigintConversion.textToBuf(this.mensaje)));
+        enviar = {
+          usuario: this.usuario,
+          tipo: "RSA",
+          cifrado: bigintConversion.bufToHex(cifrado.cifrado.mensaje),
+          iv: bigintConversion.bufToHex(cifrado.cifrado.iv),
+          clave: cifrado.clave
+        }
+      }
+
+      else if (this.cifrado === "AES"){
+        const cifrado: CifradoAES = await this.servidorService.cifrarAES(new Uint8Array(bigintConversion.textToBuf(this.mensaje)));
+        enviar = {
+          usuario: this.usuario,
+          tipo: "AES",
+          cifrado: bigintConversion.bufToHex(cifrado.mensaje),
+          iv: bigintConversion.bufToHex(cifrado.iv)
+        }
+      }
+      
+      this.servidorService.enviarCifrado(enviar).subscribe(async data => {
+        const cifradoAES: CifradoAES = {
+          mensaje: new Uint8Array(bigintConversion.hexToBuf(data.cifrado)),
+          iv: new Uint8Array(bigintConversion.hexToBuf(data.iv))
+        }
+
+        const mensaje: Uint8Array = await this.servidorService.descifrarAES(cifradoAES);
+        const mensajeRecibido: Mensaje = {
+          usuario: data.usuario,
+          mensaje: bigintConversion.bufToText(mensaje)
+        }
+
+        this.mensajes[this.mensajes.length - 1] = mensajeRecibido
+        this.mensaje = "";
+        this.changeDetectorRef.detectChanges();
+      })
+    }
   }
 
-  async enviar2(): Promise<void> {
-    console.log(this.usuarioNoRepudio)
+  async enviarNoRepudio(): Promise<void> {
     if (this.usuarioNoRepudio === undefined){
       this.errorUsuario = true;
+      this.errorNombre = false;
       return
     }
 
     if (this.mensajeAlgoritmo === undefined || this.mensajeAlgoritmo === ""){
+      this.errorNombre = false;
       this.errorMensajeAlgoritmo = true;
+
       if (this.usuarioNoRepudio !== undefined)
         this.errorUsuario = false;
       return
@@ -193,23 +251,48 @@ export class PrincipalComponent implements OnInit {
     this.errorUsuario = false;
     this.errorMensajeAlgoritmo = false;
     this.enviado = true;
-    const mensajeCifrado: DatosCifradoAES = await this.pruebaService.encriptarAES(new Uint8Array(bigintConversion.textToBuf(this.mensajeAlgoritmo)));
-    const hashCifrado = cryptojs.SHA256(mensajeCifrado.mensaje.toString())
-    const firma: bigint = this.pruebaService.getPrivateKey().sign(bigintConversion.textToBigint(hashCifrado.toString()))
-    const enviar = {
+    this.errorNombre = false;
+    const mensajeCifrado: CifradoAES = await this.servidorService.cifrarAES(new Uint8Array(bigintConversion.textToBuf(this.mensajeAlgoritmo)));
+    const hashCifrado: string = cryptojs.SHA256(mensajeCifrado.mensaje).toString();
+    const firma: bigint = this.servidorService.firmarRSA(bigintConversion.textToBigint(hashCifrado));
+    this.ivNoRepudio = mensajeCifrado.iv;
+
+    const enviar: NoRepudio = {
       usuarioOrigen: this.usuario,
       usuarioDestino: this.usuarioNoRepudio,
-      mensaje: mensajeCifrado,
+      cifrado: bigintConversion.bufToHex(mensajeCifrado.mensaje),
       firma: bigintConversion.bigintToHex(firma)
     }
+
     this.socket.emit('mensajeCifrado', enviar);
+
+    setInterval(() => {
+      if (this.enviado === true){
+        this.enviado = false;
+        this.noContestado = true;
+        this.socket.emit('noContestar', this.usuarioNoRepudio);
+      }
+    }, 5000)
+  }
+
+  aceptar(): void {
+    this.noContestado = false;
   }
 
   contestar(): void {
+    this.recibido = false;
+    const contestar: string = "OK";
+    const hash: string = cryptojs.SHA256(contestar).toString();
+    const firma: bigint = this.servidorService.firmarRSA(bigintConversion.textToBigint(hash));
+    const enviar: Mensaje = {
+      usuario: this.usuario,
+      mensaje: bigintConversion.bigintToHex(firma)
+    }
 
+    this.socket.emit('contestar', enviar);
   }
 
   rechazar(): void {
     this.recibido = false;
-  }*/
+  }
 }

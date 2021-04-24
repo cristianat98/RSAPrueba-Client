@@ -1,16 +1,5 @@
 import { RsaPublicKey } from './clave-rsa'
 
-export interface DatosCifradoAES {
-    mensaje: string
-    iv: string
-}
-
-export interface MensajeRecibidoCifrado {
-    usuario: string
-    mensaje: string
-    iv: string
-}
-
 export interface Mensaje {
     usuario: string
     mensaje: string
@@ -21,8 +10,33 @@ export interface Usuario {
     publicKey: RsaPublicKey
 }
 
-export interface enviarUsuario {
+export interface UsuarioServidor {
     nombre: string
     eHex: string
     nHex: string
+}
+
+export interface MensajeServidor {
+    usuario: string
+    tipo: string
+    cifrado: string
+    iv: string
+    clave?: string
+}
+
+export interface NoRepudio {
+    usuarioOrigen: string
+    usuarioDestino: string
+    cifrado: string
+    firma: string
+}
+
+export interface CifradoRSA {
+    cifrado: CifradoAES
+    clave: string
+}
+
+export interface CifradoAES {
+    mensaje: Uint8Array
+    iv: Uint8Array
 }
