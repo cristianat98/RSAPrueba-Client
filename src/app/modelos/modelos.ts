@@ -28,7 +28,8 @@ export interface NoRepudio {
     usuarioOrigen: string
     usuarioDestino: string
     cifrado: string
-    firma: string
+    TimeStamp: string
+    firma?: string
 }
 
 export interface CifradoRSA {

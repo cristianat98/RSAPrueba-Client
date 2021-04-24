@@ -34,8 +34,10 @@ export class PrincipalComponent implements OnInit {
   recibido: Boolean = false;
   contestado: Boolean = false;
   noContestado: Boolean = false;
+  disabled: Boolean = false;
   mensajeRecibido: Mensaje;
   mensajes: Mensaje[] = [];
+  mensajeNoRepudio: NoRepudio;
 
   ngOnInit(): void {
     this.servidorService.getClaves();
@@ -75,14 +77,63 @@ export class PrincipalComponent implements OnInit {
       }
     })
 
-    this.socket.on('mensajeCifrado', (recibido: NoRepudio) => {
-      this.usuarios.forEach(usuarioLista => {
-        if (usuarioLista.nombre === recibido.usuarioOrigen){
-          const hashFirmaBigint: bigint = usuarioLista.publicKey.verify(bigintConversion.hexToBigint(recibido.firma));
+    this.socket.on('mensajeCifrado', (recibidoSocket: NoRepudio) => {
+      this.usuarios.forEach((usuarioLista: Usuario) => {
+        if (usuarioLista.nombre === recibidoSocket.usuarioOrigen){
+          const respuesta: NoRepudio = {
+            usuarioOrigen: recibidoSocket.usuarioOrigen,
+            usuarioDestino: recibidoSocket.usuarioDestino,
+            cifrado: recibidoSocket.cifrado,
+            TimeStamp: recibidoSocket.TimeStamp 
+          }
+
+          this.mensajeNoRepudio = respuesta;
+          const respuestaString: string = JSON.stringify(respuesta);
+          const hash: string = cryptojs.SHA256(respuestaString).toString(); 
+          const hashFirmaBigint: bigint = usuarioLista.publicKey.verify(bigintConversion.hexToBigint(recibidoSocket.firma));
           const hashFirma: string = bigintConversion.bigintToText(hashFirmaBigint);
-          const hash: string = cryptojs.SHA256(bigintConversion.hexToBuf(recibido.cifrado)).toString(); 
           if (hashFirma === hash)
             this.recibido = true;
+            this.disabled = true;
+        }
+      })
+    })
+
+    this.socket.on('contestado', (recibidoSocket: NoRepudio) => {
+      this.usuarios.forEach((usuarioLista: Usuario) => {
+        if (usuarioLista.nombre === recibidoSocket.usuarioDestino){
+          const respuesta: NoRepudio = {
+            usuarioOrigen: recibidoSocket.usuarioOrigen,
+            usuarioDestino: recibidoSocket.usuarioDestino,
+            cifrado: recibidoSocket.cifrado,
+            TimeStamp: recibidoSocket.TimeStamp
+          }
+
+          if (respuesta.usuarioOrigen === recibidoSocket.usuarioOrigen && respuesta.usuarioDestino === recibidoSocket.usuarioDestino && respuesta.cifrado === recibidoSocket.cifrado){
+            const hash: string = cryptojs.SHA256(JSON.stringify(respuesta)).toString();
+            const hashFirmaBigint: bigint = usuarioLista.publicKey.verify(bigintConversion.hexToBigint(recibidoSocket.firma));
+            const hashFirma: string = bigintConversion.bigintToText(hashFirmaBigint);
+            if (hashFirma === hash){
+              this.enviado = false;
+              this.contestado = true;
+
+              let enviar: NoRepudio = {
+                usuarioOrigen: recibidoSocket.usuarioOrigen,
+                usuarioDestino: recibidoSocket.usuarioDestino,
+                cifrado: bigintConversion.bufToHex(this.ivNoRepudio),
+                TimeStamp: new Date(Date.now()).toString()
+              }
+
+              const hash: string = cryptojs.SHA256(JSON.stringify(enviar)).toString();
+              const firma: bigint = this.servidorService.firmarRSA(bigintConversion.textToBigint(hash));
+              enviar.firma = bigintConversion.bigintToHex(firma);
+              this.servidorService.enviarClave(enviar).subscribe(data => {
+                console.log("OK")
+                this.contestado = false;
+                this.disabled = false;
+              })
+            }
+          }
         }
       })
     })
@@ -251,24 +302,30 @@ export class PrincipalComponent implements OnInit {
     this.errorUsuario = false;
     this.errorMensajeAlgoritmo = false;
     this.enviado = true;
+    this.disabled = true;
+    this.mensajeAlgoritmo = "";
     this.errorNombre = false;
     const mensajeCifrado: CifradoAES = await this.servidorService.cifrarAES(new Uint8Array(bigintConversion.textToBuf(this.mensajeAlgoritmo)));
-    const hashCifrado: string = cryptojs.SHA256(mensajeCifrado.mensaje).toString();
-    const firma: bigint = this.servidorService.firmarRSA(bigintConversion.textToBigint(hashCifrado));
-    this.ivNoRepudio = mensajeCifrado.iv;
 
-    const enviar: NoRepudio = {
+    let respuesta: NoRepudio = {
       usuarioOrigen: this.usuario,
       usuarioDestino: this.usuarioNoRepudio,
       cifrado: bigintConversion.bufToHex(mensajeCifrado.mensaje),
-      firma: bigintConversion.bigintToHex(firma)
+      TimeStamp: new Date(Date.now()).toString()
     }
 
-    this.socket.emit('mensajeCifrado', enviar);
+    this.mensajeNoRepudio = respuesta; 
+    const respuestaString: string = JSON.stringify(respuesta);
+    const hash: string = cryptojs.SHA256(respuestaString).toString();
+    const firma: bigint = this.servidorService.firmarRSA(bigintConversion.textToBigint(hash));
+    this.ivNoRepudio = mensajeCifrado.iv;
+    respuesta.firma = bigintConversion.bigintToHex(firma)
+    this.socket.emit('mensajeCifrado', respuesta);
 
     setInterval(() => {
       if (this.enviado === true){
         this.enviado = false;
+        this.disabled = false;
         this.noContestado = true;
         this.socket.emit('noContestar', this.usuarioNoRepudio);
       }
@@ -281,18 +338,18 @@ export class PrincipalComponent implements OnInit {
 
   contestar(): void {
     this.recibido = false;
-    const contestar: string = "OK";
-    const hash: string = cryptojs.SHA256(contestar).toString();
+    let enviar: NoRepudio = this.mensajeNoRepudio;
+    enviar.TimeStamp = new Date(Date.now()).toString();
+    const hash: string = cryptojs.SHA256(JSON.stringify(enviar)).toString()
     const firma: bigint = this.servidorService.firmarRSA(bigintConversion.textToBigint(hash));
-    const enviar: Mensaje = {
-      usuario: this.usuario,
-      mensaje: bigintConversion.bigintToHex(firma)
-    }
-
+    enviar.firma = bigintConversion.bigintToHex(firma);
     this.socket.emit('contestar', enviar);
+    
   }
 
   rechazar(): void {
     this.recibido = false;
+    this.disabled = false;
+    this.mensajeNoRepudio = undefined;
   }
 }

@@ -3,10 +3,9 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
 import * as bigintConversion from 'bigint-conversion';
 import * as bcu from 'bigint-crypto-utils';
-import { CifradoAES, CifradoRSA, UsuarioServidor, Mensaje, MensajeServidor } from '../modelos/modelos';
+import { CifradoAES, CifradoRSA, UsuarioServidor, Mensaje, MensajeServidor, NoRepudio } from '../modelos/modelos';
 import { Observable } from 'rxjs';
-import { Usuario } from '../modelos/modelos';
-import { generateKeys, rsaKeyPair, RsaPublicKey, RsaPrivateKey } from '../modelos/clave-rsa';
+import { generateKeys, rsaKeyPair, RsaPublicKey } from '../modelos/clave-rsa';
 import { keyAES } from '../modelos/modelos-aes';
 
 @Injectable({
@@ -120,5 +119,9 @@ export class ServidorService {
 
   enviarCifrado(enviar: MensajeServidor): Observable<MensajeServidor> {
     return this.http.post<MensajeServidor>(environment.apiURL + "/mensaje", enviar);
+  }
+
+  enviarClave(enviar: NoRepudio): Observable<NoRepudio> {
+    return this.http.post<NoRepudio>(environment.apiURL + "/noRepudio", enviar);
   }
 }
