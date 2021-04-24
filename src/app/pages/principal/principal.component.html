@@ -68,6 +68,12 @@
             NO HAN CONTESTADO
             <input type="submit" value="OK" (click)="aceptar()"/> 
         </p>
+        <div *ngIf = "mensajesNoRepudio && mensajesNoRepudio.length > 0">
+            MENSAJES
+            <p *ngFor = "let mensaje of mensajesNoRepudio">
+                {{mensaje.usuario}}: {{mensaje.mensaje}}
+            </p>
+        </div>
         <h2>CIFRADOS</h2>
         Tipo de cifrado: <select [(ngModel)]="cifrado">
             <option value="RSA">RSA</option>

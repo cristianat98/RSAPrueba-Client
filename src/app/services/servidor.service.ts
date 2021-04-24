@@ -113,9 +113,7 @@ export class ServidorService {
   }
 
   async descifrarAES(cifrado: CifradoAES): Promise<Uint8Array> {
-    console.log(cifrado);
     const descifrado: Uint8Array = await this.keyAESServidor.descifrar(new Uint8Array(cifrado.mensaje), new Uint8Array(cifrado.iv));
-    console.log(descifrado);
     return descifrado;
   }
 

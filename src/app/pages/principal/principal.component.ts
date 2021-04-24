@@ -178,6 +178,8 @@ export class PrincipalComponent implements OnInit {
           usuario: respuesta.usuarioOrigen,
           mensaje: bigintConversion.bufToText(descifrado)
         }
+
+        this.mensajesNoRepudio.push(mensaje);
       }
       
       else{
@@ -186,6 +188,7 @@ export class PrincipalComponent implements OnInit {
 
       this.disabled = false;
       this.mensajeNoRepudio = undefined;
+      this.changeDetectorRef.detectChanges();
     })
 
     this.socket.on('noContestado', () => {
@@ -355,10 +358,10 @@ export class PrincipalComponent implements OnInit {
     this.errorMensajeAlgoritmo = false;
     this.enviado = true;
     this.disabled = true;
-    this.mensajeAlgoritmo = "";
     this.errorNombre = false;
-    const mensajeCifrado: CifradoAES = await this.servidorService.cifrarAES(new Uint8Array(bigintConversion.textToBuf(this.mensajeAlgoritmo)));
 
+    const mensajeCifrado: CifradoAES = await this.servidorService.cifrarAES(new Uint8Array(bigintConversion.textToBuf(this.mensajeAlgoritmo)));
+    this.mensajeAlgoritmo = "";
     let respuesta: NoRepudio = {
       usuarioOrigen: this.usuario,
       usuarioDestino: this.usuarioNoRepudio,
@@ -371,7 +374,7 @@ export class PrincipalComponent implements OnInit {
     const hash: string = cryptojs.SHA256(respuestaString).toString();
     const firma: bigint = this.servidorService.firmarRSA(bigintConversion.hexToBigint(hash));
     this.ivNoRepudio = mensajeCifrado.iv;
-    respuesta.firma = bigintConversion.bigintToHex(firma)
+    respuesta.firma = bigintConversion.bigintToHex(firma);
     this.socket.emit('mensajeCifrado', respuesta);
 
     setInterval(() => {
@@ -380,6 +383,7 @@ export class PrincipalComponent implements OnInit {
         this.disabled = false;
         this.noContestado = true;
         this.mensajeNoRepudio = undefined;
+        this.changeDetectorRef.detectChanges();
         this.socket.emit('noContestado', this.usuarioNoRepudio);
       }
     }, 5000)
