@@ -37,6 +37,7 @@ export class PrincipalComponent implements OnInit {
   disabled: Boolean = false;
   mensajeRecibido: Mensaje;
   mensajes: Mensaje[] = [];
+  mensajesNoRepudio: Mensaje[] = [];
   mensajeNoRepudio: NoRepudio;
 
   ngOnInit(): void {
@@ -78,25 +79,28 @@ export class PrincipalComponent implements OnInit {
     })
 
     this.socket.on('mensajeCifrado', (recibidoSocket: NoRepudio) => {
-      this.usuarios.forEach((usuarioLista: Usuario) => {
-        if (usuarioLista.nombre === recibidoSocket.usuarioOrigen){
-          const respuesta: NoRepudio = {
-            usuarioOrigen: recibidoSocket.usuarioOrigen,
-            usuarioDestino: recibidoSocket.usuarioDestino,
-            cifrado: recibidoSocket.cifrado,
-            TimeStamp: recibidoSocket.TimeStamp 
+      if (this.mensajeNoRepudio === undefined){
+        this.usuarios.forEach((usuarioLista: Usuario) => {
+          if (usuarioLista.nombre === recibidoSocket.usuarioOrigen){
+            const respuesta: NoRepudio = {
+              usuarioOrigen: recibidoSocket.usuarioOrigen,
+              usuarioDestino: recibidoSocket.usuarioDestino,
+              cifrado: recibidoSocket.cifrado,
+              TimeStamp: recibidoSocket.TimeStamp 
+            }
+  
+            const respuestaString: string = JSON.stringify(respuesta);
+            const hash: string = cryptojs.SHA256(respuestaString).toString(); 
+            const hashFirmaBigint: bigint = usuarioLista.publicKey.verify(bigintConversion.hexToBigint(recibidoSocket.firma));
+            const hashFirma: string = bigintConversion.bigintToHex(hashFirmaBigint);
+            if (hashFirma === hash){
+              this.recibido = true;
+              this.disabled = true;
+              this.mensajeNoRepudio = respuesta;
+            }
           }
-
-          this.mensajeNoRepudio = respuesta;
-          const respuestaString: string = JSON.stringify(respuesta);
-          const hash: string = cryptojs.SHA256(respuestaString).toString(); 
-          const hashFirmaBigint: bigint = usuarioLista.publicKey.verify(bigintConversion.hexToBigint(recibidoSocket.firma));
-          const hashFirma: string = bigintConversion.bigintToText(hashFirmaBigint);
-          if (hashFirma === hash)
-            this.recibido = true;
-            this.disabled = true;
-        }
-      })
+        })
+      }
     })
 
     this.socket.on('contestado', (recibidoSocket: NoRepudio) => {
@@ -112,7 +116,7 @@ export class PrincipalComponent implements OnInit {
           if (respuesta.usuarioOrigen === recibidoSocket.usuarioOrigen && respuesta.usuarioDestino === recibidoSocket.usuarioDestino && respuesta.cifrado === recibidoSocket.cifrado){
             const hash: string = cryptojs.SHA256(JSON.stringify(respuesta)).toString();
             const hashFirmaBigint: bigint = usuarioLista.publicKey.verify(bigintConversion.hexToBigint(recibidoSocket.firma));
-            const hashFirma: string = bigintConversion.bigintToText(hashFirmaBigint);
+            const hashFirma: string = bigintConversion.bigintToHex(hashFirmaBigint);
             if (hashFirma === hash){
               this.enviado = false;
               this.contestado = true;
@@ -125,12 +129,26 @@ export class PrincipalComponent implements OnInit {
               }
 
               const hash: string = cryptojs.SHA256(JSON.stringify(enviar)).toString();
-              const firma: bigint = this.servidorService.firmarRSA(bigintConversion.textToBigint(hash));
+              const firma: bigint = this.servidorService.firmarRSA(bigintConversion.hexToBigint(hash));
               enviar.firma = bigintConversion.bigintToHex(firma);
               this.servidorService.enviarClave(enviar).subscribe(data => {
-                console.log("OK")
+                const recibido: NoRepudio = {
+                  usuarioOrigen: data.usuarioOrigen,
+                  usuarioDestino: data.usuarioDestino,
+                  cifrado: data.cifrado,
+                  TimeStamp: data.TimeStamp,
+                }
+
+                const hash: string = cryptojs.SHA256(JSON.stringify(recibido)).toString();
+                const firmaBigint: bigint = this.servidorService.verificarRSA(bigintConversion.hexToBigint(data.firma));
+                const firma: string = bigintConversion.bigintToHex(firmaBigint);
+                if (firma !== hash){
+                  console.log("NO SE HA PODIDO AUTENTICAR AL SERVIDOR")
+                }
+                
                 this.contestado = false;
                 this.disabled = false;
+                this.mensajeNoRepudio = undefined;
               })
             }
           }
@@ -138,8 +156,42 @@ export class PrincipalComponent implements OnInit {
       })
     })
 
+    this.socket.on('clave', async (recibido: NoRepudio) => {
+      const respuesta: NoRepudio = {
+        usuarioOrigen: recibido.usuarioOrigen,
+        usuarioDestino: recibido.usuarioDestino,
+        cifrado: recibido.cifrado,
+        TimeStamp: recibido.TimeStamp
+      }
+
+      const hash: string = cryptojs.SHA256(JSON.stringify(respuesta)).toString();
+      const firmaBigint: bigint = this.servidorService.verificarRSA(bigintConversion.hexToBigint(recibido.firma));
+      const firma: string = bigintConversion.bigintToHex(firmaBigint);
+      if (hash === firma){
+        const cifradoAES: CifradoAES = {
+          mensaje: new Uint8Array(bigintConversion.hexToBuf(this.mensajeNoRepudio.cifrado)),
+          iv: new Uint8Array(bigintConversion.hexToBuf(respuesta.cifrado))
+        }
+
+        const descifrado: Uint8Array = await this.servidorService.descifrarAES(cifradoAES);
+        const mensaje: Mensaje = {
+          usuario: respuesta.usuarioOrigen,
+          mensaje: bigintConversion.bufToText(descifrado)
+        }
+      }
+      
+      else{
+        console.log("NO SE HA RECIBIDO LA CLAVE");
+      }
+
+      this.disabled = false;
+      this.mensajeNoRepudio = undefined;
+    })
+
     this.socket.on('noContestado', () => {
       this.recibido = false;
+      this.disabled = false;
+      this.mensajeNoRepudio = undefined;
     })
   }
 
@@ -217,7 +269,7 @@ export class PrincipalComponent implements OnInit {
 
     if (this.cifrado === "Firma Ciega"){
       const hashmensaje: string = cryptojs.SHA256(this.mensaje).toString();
-      const hashCegadoBigint: bigint = await this.servidorService.cegarRSA(bigintConversion.textToBigint(hashmensaje));
+      const hashCegadoBigint: bigint = await this.servidorService.cegarRSA(bigintConversion.hexToBigint(hashmensaje));
       const hashCegado: string = bigintConversion.bigintToHex(hashCegadoBigint);
       const enviar: Mensaje = {
         usuario: this.usuario,
@@ -317,7 +369,7 @@ export class PrincipalComponent implements OnInit {
     this.mensajeNoRepudio = respuesta; 
     const respuestaString: string = JSON.stringify(respuesta);
     const hash: string = cryptojs.SHA256(respuestaString).toString();
-    const firma: bigint = this.servidorService.firmarRSA(bigintConversion.textToBigint(hash));
+    const firma: bigint = this.servidorService.firmarRSA(bigintConversion.hexToBigint(hash));
     this.ivNoRepudio = mensajeCifrado.iv;
     respuesta.firma = bigintConversion.bigintToHex(firma)
     this.socket.emit('mensajeCifrado', respuesta);
@@ -327,7 +379,8 @@ export class PrincipalComponent implements OnInit {
         this.enviado = false;
         this.disabled = false;
         this.noContestado = true;
-        this.socket.emit('noContestar', this.usuarioNoRepudio);
+        this.mensajeNoRepudio = undefined;
+        this.socket.emit('noContestado', this.usuarioNoRepudio);
       }
     }, 5000)
   }
@@ -341,10 +394,9 @@ export class PrincipalComponent implements OnInit {
     let enviar: NoRepudio = this.mensajeNoRepudio;
     enviar.TimeStamp = new Date(Date.now()).toString();
     const hash: string = cryptojs.SHA256(JSON.stringify(enviar)).toString()
-    const firma: bigint = this.servidorService.firmarRSA(bigintConversion.textToBigint(hash));
+    const firma: bigint = this.servidorService.firmarRSA(bigintConversion.hexToBigint(hash));
     enviar.firma = bigintConversion.bigintToHex(firma);
     this.socket.emit('contestar', enviar);
-    
   }
 
   rechazar(): void {
