@@ -40,8 +40,8 @@ export class PrincipalComponent implements OnInit {
   mensajesNoRepudio: Mensaje[] = [];
   mensajeNoRepudio: NoRepudio;
 
-  ngOnInit(): void {
-    this.servidorService.getClaves();
+  async ngOnInit(): Promise<void> {
+    await this.servidorService.getClaves();
   }
 
   sockets(): void {
@@ -208,28 +208,34 @@ export class PrincipalComponent implements OnInit {
       this.errorNombre = false;
 
       if (this.usuario === undefined){
-        this.servidorService.conectar(this.usuarioTextBox).subscribe(data => {
-          this.errorElegido = false;
-          data.forEach((usuarioLista: UsuarioServidor)  => {
-            const nuevoUsuario: Usuario = {
-              nombre: usuarioLista.nombre,
-              publicKey: new RsaPublicKey (bigintConversion.hexToBigint(usuarioLista.eHex), bigintConversion.hexToBigint(usuarioLista.nHex))
+        try {
+          const obs = this.servidorService.conectar(this.usuarioTextBox);
+          obs.subscribe(data => {
+            this.errorElegido = false;
+            data.forEach((usuarioLista: UsuarioServidor)  => {
+              const nuevoUsuario: Usuario = {
+                nombre: usuarioLista.nombre,
+                publicKey: new RsaPublicKey (bigintConversion.hexToBigint(usuarioLista.eHex), bigintConversion.hexToBigint(usuarioLista.nHex))
+              }
+              this.usuarios.push(nuevoUsuario)
+            })
+            this.usuario = this.usuarioTextBox;
+            this.sockets();
+            const usuarioEnviar: UsuarioServidor = {
+              nombre: this.usuario,
+              nHex: bigintConversion.bigintToHex(this.servidorService.getkeyRSAPublica().n),
+              eHex: bigintConversion.bigintToHex(this.servidorService.getkeyRSAPublica().e)
             }
-            this.usuarios.push(nuevoUsuario)
-          })
-          this.usuario = this.usuarioTextBox;
-          this.sockets();
-          const usuarioEnviar: UsuarioServidor = {
-            nombre: this.usuario,
-            nHex: bigintConversion.bigintToHex(this.servidorService.getkeyRSAPublica().n),
-            eHex: bigintConversion.bigintToHex(this.servidorService.getkeyRSAPublica().e)
-          }
 
-          this.socket.emit('nuevoConectado', usuarioEnviar);
-        }, () => {
-          this.errorElegido = true;
-          this.usuarioTextBox = "";
-        })
+            this.socket.emit('nuevoConectado', usuarioEnviar);
+          }, () => {
+            this.errorElegido = true;
+            this.usuarioTextBox = "";
+          })
+        } catch (error) {
+          console.error(error);
+        }
+        
       }
   
       else{
@@ -390,7 +396,8 @@ export class PrincipalComponent implements OnInit {
   }
 
   aceptar(): void {
-    this.noContestado = false;
+    this.noContestado = false; 
+    this.changeDetectorRef.detectChanges();
   }
 
   contestar(): void {

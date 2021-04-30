@@ -18,7 +18,6 @@ export class ServidorService {
   keyAESServidor: keyAES;
   keyRSA: rsaKeyPair;
   keyRSAPublicaServidor: RsaPublicKey;
-  keyAES: keyAES;
   r: bigint;
 
   async getClaves(): Promise<void> {
@@ -47,19 +46,17 @@ export class ServidorService {
   }
   
   conectar(usuario: string): Observable<UsuarioServidor[]> {
-    if (this.keyRSA !== undefined){
-      const enviar: UsuarioServidor = {
-        nombre: usuario,
-        eHex: bigintConversion.bigintToHex(this.keyRSA.publicKey.e),
-        nHex: bigintConversion.bigintToHex(this.keyRSA.publicKey.n)
-      }
-  
-      return this.http.post<UsuarioServidor[]>(environment.apiURL + "/conectar", enviar)
+    while (this.keyRSA === undefined){
+
     }
     
-    else{
-      console.log("AÚN NO SE HAN PODIDO GENERAR LAS CLAVES")
+    const enviar: UsuarioServidor = {
+      nombre: usuario,
+      eHex: bigintConversion.bigintToHex(this.keyRSA.publicKey.e),
+      nHex: bigintConversion.bigintToHex(this.keyRSA.publicKey.n)
     }
+
+    return this.http.post<UsuarioServidor[]>(environment.apiURL + "/conectar", enviar)
   }
 
   cambiar(usuarios: string[]): Observable<string> {
