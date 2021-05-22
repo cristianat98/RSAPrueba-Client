@@ -48,3 +48,9 @@ export interface Recuento {
     mensaje?: string
     recuento: string
 }
+
+export interface secretoCompartido {
+    secreto: string
+    shared: number
+    threshold: number
+}

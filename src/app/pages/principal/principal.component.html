@@ -123,5 +123,37 @@
                 Kike: {{votosKike}}
             </p>
         </div>
+        <h2>SECRETO COMPARTIDO</h2>
+        Escribe el secreto que quieres compartir: <input [(ngModel)]="secreto" type="string" placeholder="Secreto"/>
+        Nº de Claves Totales: <input [(ngModel)]="shared" type="number"/>
+        Nº de Claves Necesarias <input [(ngModel)]="threshold" type="number"/>
+        <p *ngIf="errorSecreto" style="color:#FF0000;">
+            Debes rellenar todos los campos correctamente
+        </p>
+        <p>
+            <input type="submit" value="Obtener Claves" (click)="getClaves()"/>
+        </p>
+        <p *ngFor="let clave of clavesCompartidas">
+            Clave: {{clave}}
+        </p>
+        <h3>RECUPERAR SECRETO</h3>
+        Nº de Secretos necesarios: <input [(ngModel)]="numClaves" type="number"/> 
+        <input type="submit" value="Escribir las Claves" (click)="setLenClaves()"/>
+
+        <p *ngFor="let clave of claves; index as i">
+            Clave {{i + 1}}: <input [(ngModel)]="claves[i]" type="string"/>
+        </p>
+        <p>
+            <input type="submit" value="Recuperar Secreto" (click)="getSecreto()"/>
+        </p>
+        <p *ngIf="errorClaves" style="color:#FF0000;">
+            Debes escribir todas las claves
+        </p>
+        <p>
+            Secreto recuperado: {{secretoRecuperado}}
+        </p>
+        <p *ngIf="errorRecuperado" style="color:#FF0000;">
+            LAS CLAVES NO SON CORRECTAS
+        </p>
     </div>
 </div>

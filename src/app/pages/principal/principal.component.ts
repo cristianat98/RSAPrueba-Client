@@ -1,6 +1,6 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { Socket } from 'ngx-socket-io';
-import { CifradoRSA, UsuarioServidor, Mensaje, MensajeServidor, CifradoAES, NoRepudio } from '../../modelos/modelos';
+import { CifradoRSA, UsuarioServidor, Mensaje, MensajeServidor, CifradoAES, NoRepudio, secretoCompartido } from '../../modelos/modelos';
 import { Usuario } from '../../modelos/modelos';
 import * as bigintConversion from 'bigint-conversion';
 import * as cryptojs from 'crypto-js';
@@ -46,6 +46,16 @@ export class PrincipalComponent implements OnInit {
   votosCristian: string = "0";
   votosMicky: string = "0";
   votosKike: string = "0";
+  errorSecreto: Boolean = false;
+  secreto: string;
+  shared: number;
+  threshold: number;
+  clavesCompartidas: string[] = [];
+  numClaves: number = 0;
+  claves: string[] = [];
+  errorClaves: Boolean = false;
+  secretoRecuperado: string;
+  errorRecuperado: Boolean = false;
 
   async ngOnInit(): Promise<void> {
     await this.servidorService.getClaves();
@@ -531,6 +541,51 @@ export class PrincipalComponent implements OnInit {
       if (data.mensaje !== undefined){
         this.erroMax = true;
       }
+      this.changeDetectorRef.detectChanges();
+    })
+  }
+
+  getClaves(): void{
+    if (this.secreto === undefined || this.secreto === "" || this.shared === undefined || this.shared === 0 || this.threshold === undefined || this.threshold === 0 || this.shared < this.threshold){
+      this.errorSecreto = true;
+      return;
+    }
+
+    this.errorSecreto = false;
+    const enviar: secretoCompartido = {
+      secreto: this.secreto,
+      shared: this.shared,
+      threshold: this.threshold
+    }
+
+    this.servidorService.getClavesCompartidas(enviar).subscribe(data => {
+      this.clavesCompartidas = data;
+    })
+  }
+
+  setLenClaves(): void {
+    if (this.numClaves > 0)
+      this.claves.length = this.numClaves;
+    
+    else
+      this.numClaves = 0;
+  }
+
+  getSecreto(): void {
+    this.errorRecuperado = false;
+    this.claves.forEach((clave:string) => {
+      if (clave === undefined || clave === ""){
+        this.errorClaves = true;
+        return;
+      }
+    })
+
+    this.errorClaves = false;
+    this.servidorService.getSecreto(this.claves).subscribe(data => {
+      this.secretoRecuperado = data;
+      this.changeDetectorRef.detectChanges();
+    }, () => {
+      this.errorRecuperado = true;
       this.changeDetectorRef.detectChanges();
     })
   }

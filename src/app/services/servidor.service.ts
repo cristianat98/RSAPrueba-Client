@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
 import * as bigintConversion from 'bigint-conversion';
 import * as bcu from 'bigint-crypto-utils';
-import { CifradoAES, CifradoRSA, UsuarioServidor, Mensaje, MensajeServidor, NoRepudio, Recuento } from '../modelos/modelos';
+import { CifradoAES, CifradoRSA, UsuarioServidor, Mensaje, MensajeServidor, NoRepudio, Recuento, secretoCompartido } from '../modelos/modelos';
 import { Observable } from 'rxjs';
 import { generateKeys, rsaKeyPair, RsaPublicKey, RsaPublicKeyPaillier } from '../modelos/clave-rsa';
 import { keyAES } from '../modelos/modelos-aes';
@@ -136,5 +136,17 @@ export class ServidorService {
       voto: votoCifradoHex
     }
     return this.http.post<Recuento>(environment.apiURL + "/votar", enviar);
+  }
+
+  getClavesCompartidas(enviar: secretoCompartido): Observable<string[]> {
+    return this.http.post<string[]>(environment.apiURL + "/getClavesCompartidas", enviar);
+  }
+
+  getSecreto(claves: string[]): Observable<string> {
+    const enviar = {
+      claves: claves
+    }
+    
+    return this.http.post<string>(environment.apiURL + "/recuperarSecreto", enviar)
   }
 }
