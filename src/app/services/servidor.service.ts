@@ -3,10 +3,11 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
 import * as bigintConversion from 'bigint-conversion';
 import * as bcu from 'bigint-crypto-utils';
-import { CifradoAES, CifradoRSA, UsuarioServidor, Mensaje, MensajeServidor, NoRepudio } from '../modelos/modelos';
+import { CifradoAES, CifradoRSA, UsuarioServidor, Mensaje, MensajeServidor, NoRepudio, Recuento } from '../modelos/modelos';
 import { Observable } from 'rxjs';
-import { generateKeys, rsaKeyPair, RsaPublicKey } from '../modelos/clave-rsa';
+import { generateKeys, rsaKeyPair, RsaPublicKey, RsaPublicKeyPaillier } from '../modelos/clave-rsa';
 import { keyAES } from '../modelos/modelos-aes';
+import { ControlContainer } from '@angular/forms';
 
 @Injectable({
   providedIn: 'root'
@@ -19,6 +20,7 @@ export class ServidorService {
   keyRSA: rsaKeyPair;
   keyRSAPublicaServidor: RsaPublicKey;
   r: bigint;
+  keyRSAPaillierServidor: RsaPublicKeyPaillier
 
   async getClaves(): Promise<void> {
     const keyAESHex: string = "95442fa551e13eacedea3e79f0ec1e63513cc14a9dbc4939ad70ceb714b44b8f"
@@ -27,6 +29,7 @@ export class ServidorService {
     this.keyRSA = await generateKeys(2048);
     this.http.get<UsuarioServidor>(environment.apiURL + "/rsa").subscribe(data => {
       this.keyRSAPublicaServidor = new RsaPublicKey(bigintConversion.hexToBigint(data.eHex), bigintConversion.hexToBigint(data.nHex));
+      this.keyRSAPaillierServidor = new RsaPublicKeyPaillier(bigintConversion.hexToBigint(data.nPaillierHex), bigintConversion.hexToBigint(data.gPaillierHex))
       this.r = bigintConversion.bufToBigint(window.crypto.getRandomValues(new Uint8Array(16)));
       let enc: Boolean = false;
       while (!enc){
@@ -82,6 +85,11 @@ export class ServidorService {
     return enviar;
   }
 
+  async cifrarVotoRSA(voto: bigint): Promise<bigint> {
+    while (this.keyRSAPaillierServidor === undefined){}
+    return await this.keyRSAPaillierServidor.encrypt(voto);
+  }
+
   firmarRSA(digest: bigint): bigint {
     return this.keyRSA.privateKey.sign(digest)
   }
@@ -120,5 +128,13 @@ export class ServidorService {
 
   enviarClave(enviar: NoRepudio): Observable<NoRepudio> {
     return this.http.post<NoRepudio>(environment.apiURL + "/noRepudio", enviar);
+  }
+
+  votar(votoCifrado: bigint): Observable<Recuento> {
+    const votoCifradoHex: string = bigintConversion.bigintToHex(votoCifrado);
+    const enviar = {
+      voto: votoCifradoHex
+    }
+    return this.http.post<Recuento>(environment.apiURL + "/votar", enviar);
   }
 }

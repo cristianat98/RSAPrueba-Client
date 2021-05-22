@@ -39,6 +39,13 @@ export class PrincipalComponent implements OnInit {
   mensajes: Mensaje[] = [];
   mensajesNoRepudio: Mensaje[] = [];
   mensajeNoRepudio: NoRepudio;
+  candidato: string;
+  errorVoto: Boolean = false;
+  votado: Boolean = false;
+  erroMax: Boolean = false;
+  votosCristian: string = "0";
+  votosMicky: string = "0";
+  votosKike: string = "0";
 
   async ngOnInit(): Promise<void> {
     await this.servidorService.getClaves();
@@ -195,6 +202,51 @@ export class PrincipalComponent implements OnInit {
       this.recibido = false;
       this.disabled = false;
       this.mensajeNoRepudio = undefined;
+    })
+
+    this.socket.on('recuento', data => {
+      if (this.votado === true){
+        console.log(data);
+        const recuento: string = bigintConversion.hexToBigint(data).toString();
+        
+        if (recuento.length < 2){
+          this.votosCristian = recuento;
+        }
+
+        else if (recuento.length === 3){
+          this.votosCristian = recuento.slice(1,3);
+          if (this.votosCristian[0] === "0")
+            this.votosCristian = this.votosCristian[1];
+          this.votosMicky = recuento[0];
+        }
+
+        else if (recuento.length === 4){
+          this.votosCristian = recuento.slice(2,4);
+          if (this.votosCristian[0] === "0")
+            this.votosCristian = this.votosCristian[1];
+          this.votosMicky = recuento.slice(0,2);
+        }
+
+        else if (recuento.length === 5){
+          this.votosCristian = recuento.slice(3,5);
+          if (this.votosCristian[0] === "0")
+            this.votosCristian = this.votosCristian[1];
+          this.votosMicky = recuento.slice(1,3);
+          if (this.votosMicky[0] === "0")
+            this.votosMicky = this.votosMicky[1];
+          this.votosKike = recuento[0];
+        }
+
+        else {
+          this.votosCristian = recuento.slice(4,6);
+          if (this.votosCristian[0] === "0")
+            this.votosCristian = this.votosCristian[1];
+          this.votosMicky = recuento.slice(2,4);
+          if (this.votosMicky[0] == "0")
+            this.votosMicky = this.votosMicky[1];
+          this.votosKike = recuento.slice(0,2);
+        }
+      }
     })
   }
 
@@ -414,5 +466,72 @@ export class PrincipalComponent implements OnInit {
     this.recibido = false;
     this.disabled = false;
     this.mensajeNoRepudio = undefined;
+  }
+
+  async votar(): Promise<void> {
+    if (this.candidato === undefined){
+      this.errorVoto = true;
+      return;
+    }
+
+    this.votado = true;
+    let voto: bigint;
+    this.errorVoto = false;
+    if (this.candidato === "1")
+      voto = 1n;
+
+    else if (this.candidato === "100")
+      voto = 100n;
+
+    else
+      voto = 10000n;
+
+    const votoCifrado: bigint = await this.servidorService.cifrarVotoRSA(voto);
+    this.servidorService.votar(votoCifrado).subscribe(data => {
+      const recuento: string = bigintConversion.hexToBigint(data.recuento).toString();
+
+      if (recuento.length < 2){
+        this.votosCristian = recuento;
+      }
+
+      else if (recuento.length === 3){
+        this.votosCristian = recuento.slice(1,3);
+        if (this.votosCristian[0] === "0")
+          this.votosCristian = this.votosCristian[1];
+        this.votosMicky = recuento[0];
+      }
+
+      else if (recuento.length === 4){
+        this.votosCristian = recuento.slice(2,4);
+        if (this.votosCristian[0] === "0")
+          this.votosCristian = this.votosCristian[1];
+        this.votosMicky = recuento.slice(0,2);
+      }
+
+      else if (recuento.length === 5){
+        this.votosCristian = recuento.slice(3,5);
+        if (this.votosCristian[0] === "0")
+          this.votosCristian = this.votosCristian[1];
+        this.votosMicky = recuento.slice(1,3);
+        if (this.votosMicky[0] === "0")
+          this.votosMicky = this.votosMicky[1];
+        this.votosKike = recuento[0];
+      }
+
+      else {
+        this.votosCristian = recuento.slice(4,6);
+        if (this.votosCristian[0] === "0")
+          this.votosCristian = this.votosCristian[1];
+        this.votosMicky = recuento.slice(2,4);
+        if (this.votosMicky[0] == "0")
+          this.votosMicky = this.votosMicky[1];
+        this.votosKike = recuento.slice(0,2);
+      }
+
+      if (data.mensaje !== undefined){
+        this.erroMax = true;
+      }
+      this.changeDetectorRef.detectChanges();
+    })
   }
 }

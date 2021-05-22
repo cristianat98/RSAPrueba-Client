@@ -14,6 +14,8 @@ export interface UsuarioServidor {
     nombre: string
     eHex: string
     nHex: string
+    nPaillierHex?: string
+    gPaillierHex?: string
 }
 
 export interface MensajeServidor {
@@ -40,4 +42,9 @@ export interface CifradoRSA {
 export interface CifradoAES {
     mensaje: Uint8Array
     iv: Uint8Array
+}
+
+export interface Recuento {
+    mensaje?: string
+    recuento: string
 }

@@ -35,6 +35,47 @@ export class RsaPublicKey {
         return bcu.modPow(s, this.e, this.n)
     }
 }
+
+export class RsaPublicKeyPaillier {
+  readonly n: bigint
+  readonly g: bigint
+  readonly _n2: bigint
+
+  constructor (n: bigint, g: bigint) {
+    this.n = n
+    this._n2 = this.n ** 2n // cache n^2
+    this.g = g
+  }
+
+  get bitLength (): number {
+    return bcu.bitLength(this.n)
+  }
+  
+  encrypt (m: bigint, r?: bigint): bigint {
+    if (r === undefined) {
+      do {
+        r = bcu.randBetween(this.n)
+      } while (bcu.gcd(r, this.n) !== 1n)
+    }
+    return (bcu.modPow(this.g, m, this._n2) * bcu.modPow(r, this.n, this._n2)) % this._n2
+  }
+
+  addition (...ciphertexts: Array<bigint>): bigint {
+    return ciphertexts.reduce((sum, next) => sum * next % (this._n2), 1n)
+  }
+
+  /**
+     * Pseudo-homomorphic Paillier multiplication
+     *
+     * @param {bigint} c - a number m encrypted with this public key
+     * @param {bigint | number} k - either a bigint or a number
+     *
+     * @returns {bigint} - the encryption of k·m with this public key
+     */
+  multiply (c: bigint, k: bigint|number): bigint {
+    return bcu.modPow(c, k, this._n2)
+  }
+}
   
 export interface rsaKeyPair {
     publicKey: RsaPublicKey

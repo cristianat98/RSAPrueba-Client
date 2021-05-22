@@ -97,5 +97,31 @@
                 {{mensaje.usuario}}: {{mensaje.mensaje}}
             </p>
         </div>
+        <h2>VOTACIÓN</h2>
+        Elige tu candidato (Máx. 99 votos): <select [(ngModel)]="candidato">
+            <option value="1">Cristian</option>
+            <option value="100">Micky</option>
+            <option value="10000">Kike</option>
+        </select>*
+        <p *ngIf="errorVoto" style="color:#FF0000;">
+            Debes elegir un candidato
+        </p>
+        <p *ngIf="errorMax" style="color:#FF0000;">
+            Ya han votado todos
+        </p>
+        <p>
+            <input type="submit" value="Votar" (click)="votar()" [disabled]="votado"/>
+        </p>
+        <div *ngIf="votado">
+            <p>
+                Cristian: {{votosCristian}}
+            </p>
+            <p>
+                Micky: {{votosMicky}}
+            </p>
+            <p>
+                Kike: {{votosKike}}
+            </p>
+        </div>
     </div>
 </div>
