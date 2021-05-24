@@ -7,7 +7,6 @@ import { CifradoAES, CifradoRSA, UsuarioServidor, Mensaje, MensajeServidor, NoRe
 import { Observable } from 'rxjs';
 import { generateKeys, rsaKeyPair, RsaPublicKey, RsaPublicKeyPaillier } from '../modelos/clave-rsa';
 import { keyAES } from '../modelos/modelos-aes';
-import { ControlContainer } from '@angular/forms';
 
 @Injectable({
   providedIn: 'root'

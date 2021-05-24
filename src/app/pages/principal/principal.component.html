@@ -137,7 +137,7 @@
             Clave: {{clave}}
         </p>
         <h3>RECUPERAR SECRETO</h3>
-        Nº de Secretos necesarios: <input [(ngModel)]="numClaves" type="number"/> 
+        Nº de claves necesarias: <input [(ngModel)]="numClaves" type="number"/> 
         <input type="submit" value="Escribir las Claves" (click)="setLenClaves()"/>
 
         <p *ngFor="let clave of claves; index as i">

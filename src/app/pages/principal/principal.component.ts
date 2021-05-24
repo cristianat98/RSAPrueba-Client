@@ -350,7 +350,7 @@ export class PrincipalComponent implements OnInit {
       this.servidorService.firmarServidor(enviar).subscribe(data => {
         const firma: bigint = this.servidorService.descegarRSA(bigintConversion.hexToBigint(data.mensaje));
         const digestBigint: bigint = this.servidorService.verificarRSA(firma);
-        const digest: string = bigintConversion.bigintToText(digestBigint);
+        const digest: string = bigintConversion.bigintToHex(digestBigint);
         if (digest === hashmensaje){
           const mensaje: Mensaje = {
             usuario: this.usuario,
@@ -360,6 +360,10 @@ export class PrincipalComponent implements OnInit {
           this.mensajes[this.mensajes.length - 1] = mensaje
           this.mensaje = "";
           this.changeDetectorRef.detectChanges();
+        }
+
+        else{
+          console.log("ERROR")
         }
       })
     }
@@ -454,7 +458,7 @@ export class PrincipalComponent implements OnInit {
         this.changeDetectorRef.detectChanges();
         this.socket.emit('noContestado', this.usuarioNoRepudio);
       }
-    }, 5000)
+    }, 10000)
   }
 
   aceptar(): void {
